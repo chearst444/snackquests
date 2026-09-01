@@ -224,6 +224,7 @@ a:focus-visible {
 .hero h1,
 .tracks h2,
 .snack-pack h2,
+.tip-jar h2,
 .why h2,
 .workshop h2 {
   font-family: var(--font-display);
@@ -310,6 +311,7 @@ a:focus-visible {
 
 .tracks,
 .snack-pack,
+.tip-jar,
 .why,
 .workshop {
   padding: 2.5rem 0;
@@ -436,6 +438,30 @@ a:focus-visible {
   font-weight: 800;
 }
 
+.tip-card {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+  background: linear-gradient(180deg, #fffaf2, #ffe7b8);
+  border: 3px solid #f4b942;
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow);
+  padding: 1.35rem 1.25rem 1.5rem;
+}
+
+.tip-art {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 1.2rem;
+  background: #fff6eb;
+  display: grid;
+  place-items: center;
+}
+
+.tip-copy p {
+  max-width: 40rem;
+}
+
 .why-inner {
   background: #fff8ee;
   border: 3px dashed #f0c48a;
@@ -534,6 +560,12 @@ a:focus-visible {
   .game-grid,
   .workshop-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tip-card {
+    grid-template-columns: auto 1fr;
+    padding: 1.75rem 2rem;
+    gap: 1.5rem;
   }
 
   .why-inner {
