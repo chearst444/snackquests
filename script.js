@@ -14,22 +14,4 @@
       });
     });
   }
-
-  var chips = document.querySelectorAll("[data-filter]");
-  var cards = document.querySelectorAll(".game-card");
-  chips.forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      var filter = chip.getAttribute("data-filter");
-      chips.forEach(function (item) {
-        var active = item === chip;
-        item.classList.toggle("is-active", active);
-        item.setAttribute("aria-pressed", active ? "true" : "false");
-      });
-      cards.forEach(function (card) {
-        var track = card.getAttribute("data-track");
-        var show = filter === "all" || track === filter;
-        card.classList.toggle("is-hidden", !show);
-      });
-    });
-  });
 })();
