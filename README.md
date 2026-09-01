@@ -2,7 +2,7 @@
 
 Studio storefront for **Snack Quests**, an independent micro gaming studio.
 
-Bite sized educational and faith based games for mobile browsers, the kind you can play on a 10 minute car ride or in a waiting room. For now, pay what you like. Later, games will be $0.99 to $2.99. No pop up ads, no hidden trackers, no surprise microtransactions.
+Bite sized educational and faith based games for mobile browsers, the kind you can play on a 10 minute car ride or in a waiting room. For now, pay what you like. In the future, the only prices will be $0.99 to $2.99. No surprise prices. No pop up ads, no hidden trackers, no surprise microtransactions.
 
 ## This repository
 
