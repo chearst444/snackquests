@@ -415,9 +415,16 @@ a:focus-visible {
   flex-direction: column;
 }
 
-.game-art svg {
+.game-art svg,
+.game-art img {
   width: 100%;
   height: auto;
+}
+
+.game-art img {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: center;
 }
 
 .game-meta {
