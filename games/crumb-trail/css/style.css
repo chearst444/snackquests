@@ -498,8 +498,9 @@ a.sq-studio {
   filter: drop-shadow(0 2px 2px rgba(59, 42, 26, 0.4));
 }
 .crumb.is-decoy {
-  filter: drop-shadow(0 2px 2px rgba(59, 42, 26, 0.4)) grayscale(0.55) brightness(0.85);
-  opacity: 0.8;
+  background-image: url(../assets/crumb-moldy.png);
+  filter: drop-shadow(0 2px 2px rgba(59, 42, 26, 0.4));
+  opacity: 0.92;
 }
 .crumb.is-done {
   filter: none;
