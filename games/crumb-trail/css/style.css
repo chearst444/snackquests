@@ -45,6 +45,15 @@ body {
 
 h1, h2, p { margin: 0; }
 button { font: inherit; color: inherit; }
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Keep tappable controls at least 44 CSS pixels on every viewport. */
 button,
@@ -136,23 +145,23 @@ a.sq-studio {
 #sq-open .sq-art-crumb--4 { width: 7.1%; transform: translate(-50%, -50%) rotate(7deg); }
 #sq-open .sq-art-crumb--5 { width: 8%; transform: translate(-50%, -50%) rotate(-8deg); }
 #sq-open .sq-art-crumb--6 { width: 9%; transform: translate(-50%, -50%) rotate(5deg); }
-#sq-open .sq-continue,
-#sq-open .sq-play {
-  background: #fff6eb;
+#sq-open .sq-continue {
+  background: var(--paper);
+  background-clip: padding-box;
   color: #3b2a1a;
-  border: 4px solid #8b4e1f;
+  border-style: solid;
+  border-width: 18px 26px;
+  border-image: url(../assets/ui/badge-frame.png) 90 / 18px 26px stretch;
   font-family: "Fredoka", Georgia, serif;
-  font-size: clamp(16px, 4vw, 22px);
+  font-size: clamp(15px, 3.8vw, 20px);
   font-weight: 700;
   letter-spacing: 0.03em;
-  padding: 12px 22px;
+  padding: 4px 4px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   min-width: 44px;
-  min-height: 48px;
-}
-#sq-open .sq-continue {
+  min-height: 44px;
   position: absolute;
   left: 50%;
   bottom: 8%;
@@ -169,12 +178,22 @@ a.sq-studio {
 #sq-open.is-howto .sq-stage { display: none; }
 #sq-open.is-howto .sq-howto { display: block; }
 #sq-open .sq-howto-card {
-  background: #fff6eb;
+  background: var(--paper);
+  background-clip: padding-box;
   color: #3b2a1a;
-  border: 4px solid #8b4e1f;
-  padding: 22px 20px 16px;
+  border-style: solid;
+  border-width: 30px;
+  border-image: url(../assets/ui/card-frame.png) 150 / 30px stretch;
+  padding: 12px 14px 18px;
   text-align: center;
   box-sizing: border-box;
+}
+#sq-open .sq-howto-scroll {
+  display: block;
+  width: 72px;
+  height: auto;
+  margin: 0 auto 8px;
+  filter: drop-shadow(0 3px 3px rgba(59, 42, 26, 0.3));
 }
 #sq-open .sq-howto-card h2 {
   margin: 0 0 12px;
@@ -188,10 +207,24 @@ a.sq-studio {
   line-height: 1.45;
   text-align: left;
 }
-#sq-open.is-howto .sq-play {
-  margin: 12px auto 0;
-  display: inline-block;
+#sq-open .sq-play {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  margin: 14px auto 0;
+  display: block;
 }
+#sq-open .sq-play img {
+  display: block;
+  width: 84px;
+  height: auto;
+  filter: drop-shadow(0 4px 6px rgba(59, 42, 26, 0.4));
+  transition: transform 120ms ease;
+}
+#sq-open .sq-play:active img { transform: scale(0.94); }
 #sq-open .sq-studio {
   position: absolute;
   top: 10px;
@@ -259,10 +292,12 @@ a.sq-studio {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cookie-dark);
-  background: #ffe9a8;
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  padding: 4px 12px;
+  background: transparent;
+  border: 0;
+  border-style: solid;
+  border-width: 10px 16px;
+  border-image: url(../assets/ui/badge-frame.png) 90 / 10px 16px stretch;
+  margin: 0;
 }
 
 .heart-meter {
@@ -271,39 +306,65 @@ a.sq-studio {
   gap: 6px;
   font-size: 12px;
   font-weight: 800;
-  color: var(--jam);
+  color: var(--cookie-dark);
 }
-.heart-meter svg {
-  width: 34px;
-  height: 30px;
+.crook-icon {
+  height: 24px;
+  width: auto;
   display: block;
-  overflow: visible;
+  filter: drop-shadow(0 1px 1px rgba(59, 42, 26, 0.35));
 }
-.heart-fill {
-  fill: var(--jam);
-  transition: y 500ms ease, height 500ms ease;
+.heart-meter__hearts {
+  display: flex;
+  gap: 2px;
 }
-.heart-outline {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 3;
-  stroke-linejoin: round;
+.heart-icon {
+  width: 20px;
+  height: auto;
+  display: block;
+  opacity: 0.32;
+  filter: grayscale(0.6);
+  transition: opacity 400ms ease, filter 400ms ease, transform 400ms ease;
 }
-.heart-meter.is-lit svg {
-  filter: drop-shadow(0 0 8px rgba(214, 69, 69, 0.7));
+.heart-icon.is-filled {
+  opacity: 1;
+  filter: none;
+  transform: scale(1.08);
+}
+.heart-meter.is-lit .heart-icon.is-filled {
+  filter: drop-shadow(0 0 6px rgba(244, 185, 66, 0.9));
 }
 
-.stage-info { text-align: center; min-height: 44px; }
+.stage-info {
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 80px;
+  padding: 20px 16% 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: url(../assets/ui/banner-frame.png) center / 100% 100% no-repeat;
+}
 .stage-info__title {
   font-family: "Fredoka", "Trebuchet MS", sans-serif;
-  font-size: clamp(20px, 5vw, 26px);
+  font-size: clamp(18px, 4.6vw, 24px);
   font-weight: 700;
+  color: var(--ink);
 }
 .stage-info__subtitle {
-  font-size: 14px;
+  font-size: clamp(11px, 3vw, 13px);
   color: var(--ink-soft);
   margin-top: 2px;
-  line-height: 1.35;
+  line-height: 1.3;
+}
+.hud-divider {
+  display: block;
+  width: min(80vw, 420px);
+  height: auto;
+  margin: -2px auto 0;
+  opacity: 0.85;
 }
 
 .stage-dots {
@@ -342,10 +403,14 @@ a.sq-studio {
   width: 100%;
   aspect-ratio: 4 / 5;
   max-height: min(68dvh, 560px);
-  border: 3px solid var(--ink);
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 22px;
+  border-image: url(../assets/ui/card-frame.png) 150 / 22px stretch;
   border-radius: 20px;
   overflow: hidden;
   background: #7eb8d4;
+  background-clip: padding-box;
   box-shadow: 0 8px 0 rgba(59, 42, 26, 0.12);
 }
 .trail-scene svg.backdrop {
@@ -363,20 +428,21 @@ a.sq-studio {
   min-height: 44px;
   margin: 0;
   padding: 0;
-  border: 3px solid var(--cookie-dark);
+  border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffe4b5, var(--gold) 55%, var(--bread));
+  background: url(../assets/crumb.png) center / 78% no-repeat;
   transform: translate(-50%, -50%);
   cursor: pointer;
   z-index: 2;
+  filter: drop-shadow(0 2px 2px rgba(59, 42, 26, 0.4));
 }
 .crumb.is-decoy {
-  background: radial-gradient(circle at 35% 30%, #e8c08a, #c4783a 60%, #8b4e1f);
-  opacity: 0.78;
+  filter: drop-shadow(0 2px 2px rgba(59, 42, 26, 0.4)) grayscale(0.55) brightness(0.85);
+  opacity: 0.8;
 }
 .crumb.is-done {
-  background: #ffe9a8;
-  opacity: 0.45;
+  filter: none;
+  opacity: 0.32;
   pointer-events: none;
 }
 .crumb.is-glow {
@@ -384,7 +450,7 @@ a.sq-studio {
   animation: soft-glow 1.5s ease-in-out infinite;
 }
 .crumb.is-shake { animation: gentle-shake 480ms ease; }
-.crumb:active { filter: brightness(0.96); }
+.crumb:active { filter: brightness(0.9); }
 
 @keyframes soft-glow {
   0%, 100% { box-shadow: 0 0 0 3px rgba(255, 246, 235, 0.4), 0 0 12px 4px rgba(244, 185, 66, 0.45); }
@@ -411,10 +477,14 @@ a.sq-studio {
 /* ----------------------------- Pattern match ----------------------------- */
 .match-board {
   width: 100%;
+  box-sizing: border-box;
   background: var(--white);
-  border: 3px solid var(--ink);
+  background-clip: padding-box;
+  border-style: solid;
+  border-width: 24px;
+  border-image: url(../assets/ui/card-frame.png) 150 / 24px stretch;
   border-radius: 20px;
-  padding: 18px 16px 20px;
+  padding: 12px 12px 16px;
   box-shadow: 0 8px 0 rgba(59, 42, 26, 0.12);
   display: flex;
   flex-direction: column;
@@ -437,7 +507,7 @@ a.sq-studio {
   display: grid;
   place-items: center;
 }
-.match-chip svg { width: 78%; height: 78%; display: block; }
+.match-chip img { width: 78%; height: 78%; display: block; object-fit: contain; }
 .match-chip.is-empty { background: #f3e6d8; }
 .match-pads {
   display: grid;
@@ -447,16 +517,19 @@ a.sq-studio {
 }
 .match-pad {
   aspect-ratio: 1;
-  border: 3px solid var(--ink);
-  border-radius: 18px;
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 12px;
+  border-image: url(../assets/ui/badge-frame.png) 90 / 12px stretch;
   background: var(--paper);
+  background-clip: padding-box;
   cursor: pointer;
   display: grid;
   place-items: center;
   min-width: 44px;
   min-height: 72px;
 }
-.match-pad svg { width: 58%; height: 58%; display: block; }
+.match-pad img { width: 56%; height: 56%; display: block; object-fit: contain; }
 .match-pad.is-glow {
   background: #fff4c4;
   animation: soft-glow 900ms ease;
@@ -491,10 +564,14 @@ a.sq-studio {
 .overlay--glow { background: rgba(232, 168, 56, 0.28); }
 .overlay__card {
   width: min(92vw, 420px);
+  box-sizing: border-box;
   background: var(--white);
-  border: 3px solid var(--ink);
+  background-clip: padding-box;
+  border-style: solid;
+  border-width: 30px;
+  border-image: url(../assets/ui/card-frame.png) 150 / 30px stretch;
   border-radius: 20px;
-  padding: 24px 20px;
+  padding: 10px 10px 16px;
   box-shadow: 0 10px 0 rgba(59, 42, 26, 0.18);
   text-align: center;
   display: flex;
@@ -506,6 +583,7 @@ a.sq-studio {
 }
 .overlay__card--glow {
   background: linear-gradient(180deg, #fffaf2, #ffe9a8);
+  background-clip: padding-box;
   box-shadow: 0 0 28px rgba(244, 185, 66, 0.55), 0 10px 0 rgba(59, 42, 26, 0.12);
 }
 .overlay__eyebrow {
@@ -547,10 +625,14 @@ a.sq-studio {
   gap: 10px;
 }
 .fork-btn {
-  border: 3px solid var(--ink);
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 14px;
+  border-image: url(../assets/ui/badge-frame.png) 90 / 14px stretch;
   border-radius: 16px;
   background: var(--paper);
-  padding: 12px 14px;
+  background-clip: padding-box;
+  padding: 6px 8px;
   text-align: left;
   cursor: pointer;
   min-width: 44px;
@@ -573,16 +655,20 @@ a.sq-studio {
 .fork-btn:active { transform: translateY(2px); }
 
 .btn {
-  border: 3px solid var(--ink);
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 16px 22px;
+  border-image: url(../assets/ui/badge-frame.png) 90 / 16px 22px stretch;
   border-radius: 999px;
-  padding: 12px 20px;
+  padding: 4px 6px;
   font-weight: 800;
   cursor: pointer;
   min-width: 44px;
-  min-height: 48px;
+  min-height: 44px;
 }
 .btn--primary {
   background: var(--gold);
+  background-clip: padding-box;
   color: var(--ink);
   box-shadow: 0 4px 0 rgba(59, 42, 26, 0.28);
 }

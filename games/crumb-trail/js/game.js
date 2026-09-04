@@ -85,7 +85,7 @@
   const stageDots = document.getElementById("stageDots");
   const toastEl = document.getElementById("toast");
   const heartMeter = document.getElementById("heartMeter");
-  const heartFill = document.getElementById("heartFill");
+  const heartIcons = [document.getElementById("heart1"), document.getElementById("heart2")];
   const app = document.getElementById("app");
 
   const forkOverlay = document.getElementById("forkOverlay");
@@ -108,17 +108,18 @@
     </svg>`;
   }
 
+  // Each trail mark kind now renders as one of the farmstead icons instead
+  // of a hand-drawn shape - the kind keys (and the Simon-says logic that
+  // shuffles and compares them) are untouched, only the glyph changed.
+  const KIND_ICONS = {
+    round: "sun",
+    sesame: "wheat",
+    twist: "well",
+    heart: "sheep"
+  };
   function kindSvg(kind) {
-    if (kind === "sesame") {
-      return `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="#E8A838" stroke="#8B4E1F" stroke-width="3"/><circle cx="24" cy="26" r="3" fill="#3B2A1A"/><circle cx="38" cy="24" r="2.5" fill="#3B2A1A"/><circle cx="32" cy="34" r="3" fill="#3B2A1A"/><circle cx="22" cy="38" r="2.4" fill="#3B2A1A"/><circle cx="42" cy="36" r="2.6" fill="#3B2A1A"/></svg>`;
-    }
-    if (kind === "twist") {
-      return `<svg viewBox="0 0 64 64"><path d="M18 40c8-16 20-16 28 0" fill="none" stroke="#C4783A" stroke-width="10" stroke-linecap="round"/><path d="M18 28c8 16 20 16 28 0" fill="none" stroke="#F4B942" stroke-width="10" stroke-linecap="round"/></svg>`;
-    }
-    if (kind === "heart") {
-      return `<svg viewBox="0 0 64 64"><path d="M32 50 L12 30 C6 24 6 14 14 10 C22 6 28 10 32 18 C36 10 42 6 50 10 C58 14 58 24 52 30 Z" fill="#D64545" stroke="#3B2A1A" stroke-width="3" stroke-linejoin="round"/></svg>`;
-    }
-    return `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="#F4B942" stroke="#8B4E1F" stroke-width="3"/><ellipse cx="26" cy="26" rx="7" ry="4" fill="#FFE4B5" opacity="0.8"/></svg>`;
+    const icon = KIND_ICONS[kind] || "sun";
+    return `<img src="assets/ui/icon-${icon}.png" alt="">`;
   }
 
   function sceneSvg(kind) {
@@ -163,12 +164,11 @@
   }
 
   function setHeart() {
-    const max = 2;
-    const ratio = Math.min(kindness, max) / max;
-    const height = 56 * ratio;
-    const y = 56 - height;
-    heartFill.setAttribute("y", String(y));
-    heartFill.setAttribute("height", String(height));
+    const max = heartIcons.length; // 2, unchanged - still two kind choices to earn
+    const filled = Math.min(kindness, max);
+    heartIcons.forEach(function (img, i) {
+      img.classList.toggle("is-filled", i < filled);
+    });
     const label = kindness <= 0
       ? "Good Samaritan heart, empty"
       : kindness >= max
