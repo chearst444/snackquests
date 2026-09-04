@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#E8A838">
   <title>Crumb Trail</title>
-  <meta name="description" content="Follow the crumb path. Choose Help, Share, or Wait. A Daily Bread parable walk with a Good Samaritan heart. No ads.">
+  <meta name="description" content="Follow the crumb path and choose your word at the fork. Two Daily Bread parable walks - the Good Samaritan and the Rich Fool. No ads.">
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,51 +28,35 @@
       <span>Snack Quests</span>
     </a>
     <div class="sq-stage" id="sq-art-screen">
-      <div class="sq-art" role="img" aria-label="Crumb Trail. A golden loaf follows crumbs down a dusty road.">
-        <svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="openSky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#7EB8D4"/>
-              <stop offset="55%" stop-color="#FFE4B5"/>
-              <stop offset="100%" stop-color="#E8A838"/>
-            </linearGradient>
-          </defs>
-          <rect width="800" height="500" fill="url(#openSky)"/>
-          <ellipse cx="640" cy="118" rx="54" ry="54" fill="#FFF6EB" opacity="0.85"/>
-          <path d="M0 310 C180 250 300 340 480 280 C620 230 720 300 800 270 L800 500 L0 500 Z" fill="#C4783A"/>
-          <path d="M0 360 C200 300 340 390 520 330 C660 280 740 360 800 340 L800 500 L0 500 Z" fill="#8B4E1F"/>
-          <path d="M90 500 C200 340 310 300 420 318 C540 338 640 280 760 250" fill="none" stroke="#F4B942" stroke-width="14" stroke-linecap="round" stroke-dasharray="8 22" opacity="0.95"/>
-          <circle cx="180" cy="390" r="11" fill="#FFE4B5" stroke="#8B4E1F" stroke-width="2"/>
-          <circle cx="268" cy="346" r="11" fill="#F4B942" stroke="#8B4E1F" stroke-width="2"/>
-          <circle cx="360" cy="328" r="12" fill="#FFE4B5" stroke="#8B4E1F" stroke-width="2"/>
-          <circle cx="468" cy="332" r="11" fill="#F4B942" stroke="#8B4E1F" stroke-width="2"/>
-          <circle cx="572" cy="300" r="12" fill="#FFE4B5" stroke="#8B4E1F" stroke-width="2"/>
-          <circle cx="668" cy="268" r="13" fill="#F4B942" stroke="#8B4E1F" stroke-width="2"/>
-          <g transform="translate(132 348)">
-            <ellipse cx="40" cy="52" rx="36" ry="22" fill="#E8A838"/>
-            <ellipse cx="40" cy="40" rx="32" ry="26" fill="#F4B942"/>
-            <ellipse cx="40" cy="34" rx="26" ry="16" fill="#FFE4B5"/>
-            <circle cx="30" cy="40" r="3.2" fill="#3B2A1A"/>
-            <circle cx="50" cy="40" r="3.2" fill="#3B2A1A"/>
-            <path d="M32 50c4 4 12 4 16 0" fill="none" stroke="#3B2A1A" stroke-width="2.4" stroke-linecap="round"/>
-          </g>
-          <g transform="translate(620 188)">
-            <path d="M40 72 C18 58 16 34 40 22 C52 8 78 16 78 36 C96 30 106 52 90 66 C86 84 52 86 40 72Z" fill="#D64545"/>
-            <path d="M40 72 C62 58 64 34 40 22 C28 8 2 16 2 36 C-16 30 -26 52 -10 66 C-6 84 28 86 40 72Z" fill="#D64545"/>
-          </g>
-          <text x="400" y="78" text-anchor="middle" fill="#3B2A1A" font-family="Georgia, serif" font-size="42" font-weight="700">Crumb Trail</text>
-          <text x="400" y="108" text-anchor="middle" fill="#8B4E1F" font-family="Georgia, serif" font-size="16">Daily Bread</text>
-        </svg>
+      <div class="sq-art" role="img" aria-label="Crumb Trail. A trail of crumbs winds down the hill from a lone farmhouse.">
+        <img class="sq-art-bg" src="assets/opening-bg.jpg" alt="">
+        <div class="sq-art-title">
+          <img class="sq-art-title-logo" src="assets/ui/title-logo.png" alt="Crumb Trail">
+          <p>Daily Bread</p>
+        </div>
+        <img class="sq-art-crumb sq-art-crumb--1" src="assets/crumb.png" alt="" style="left:63%; top:74.5%;">
+        <img class="sq-art-crumb sq-art-crumb--2" src="assets/crumb.png" alt="" style="left:58%; top:79.5%;">
+        <img class="sq-art-crumb sq-art-crumb--3" src="assets/crumb.png" alt="" style="left:51.5%; top:84%;">
+        <img class="sq-art-crumb sq-art-crumb--4" src="assets/crumb.png" alt="" style="left:44%; top:88.5%;">
+        <img class="sq-art-crumb sq-art-crumb--5" src="assets/crumb.png" alt="" style="left:35.5%; top:93%;">
+        <img class="sq-art-crumb sq-art-crumb--6" src="assets/crumb.png" alt="" style="left:25%; top:97%;">
       </div>
       <button type="button" class="sq-continue" id="sq-continue">Tap to continue</button>
     </div>
     <div class="sq-howto" id="sq-howto">
       <div class="sq-howto-card">
+        <img class="sq-howto-scroll" src="assets/ui/scroll.png" alt="">
         <h2>How to play</h2>
         <p>Follow the crumb path. A soft glow marks the next true crumb. A wrong crumb only gives a gentle redirect. Never a scolding.</p>
-        <p>When the road forks, choose a word: Help, Share, or Wait. Kindness fills the Good Samaritan heart.</p>
+        <p>When the road forks, choose a word. Kindness fills the heart - one choice each story only offers a redirect, never a fill.</p>
         <p>No ads. No rush. A short walk you can finish in a snack sized moment.</p>
-        <button type="button" class="sq-play" id="sq-play">Play</button>
+        <button type="button" class="sq-play" id="sq-play"><img src="assets/ui/play-button.png" alt=""><span class="sr-only">Play</span></button>
+      </div>
+    </div>
+    <div class="sq-levels" id="sq-levels">
+      <div class="sq-levels-card">
+        <h2>Choose a story</h2>
+        <ul class="level-list" id="levelList"></ul>
       </div>
     </div>
   </div>
@@ -82,16 +66,12 @@
       <div class="hud-row">
         <p class="track-tag">Daily Bread</p>
         <div class="heart-meter" id="heartMeter" aria-label="Good Samaritan heart, empty">
-          <svg viewBox="0 0 64 56" aria-hidden="true" focusable="false">
-            <defs>
-              <clipPath id="heartClip">
-                <path d="M32 52 L8 28 C2 22 2 12 10 8 C18 4 26 8 32 16 C38 8 46 4 54 8 C62 12 62 22 56 28 Z"/>
-              </clipPath>
-            </defs>
-            <rect id="heartFill" class="heart-fill" x="0" y="56" width="64" height="56" clip-path="url(#heartClip)"/>
-            <path class="heart-outline" d="M32 52 L8 28 C2 22 2 12 10 8 C18 4 26 8 32 16 C38 8 46 4 54 8 C62 12 62 22 56 28 Z"/>
-          </svg>
-          <span>Good Samaritan</span>
+          <img class="crook-icon" src="assets/ui/crook.png" alt="">
+          <span id="heartLabel">Good Samaritan</span>
+          <span class="heart-meter__hearts">
+            <img class="heart-icon" id="heart1" src="assets/ui/heart.png" alt="">
+            <img class="heart-icon" id="heart2" src="assets/ui/heart.png" alt="">
+          </span>
         </div>
       </div>
       <div class="stage-info">
@@ -100,6 +80,7 @@
       </div>
       <ol class="stage-dots" id="stageDots" aria-label="Journey stages"></ol>
     </header>
+    <img class="hud-divider" src="assets/ui/divider.png" alt="">
 
     <main id="stageWrap" class="stage-wrap" aria-label="Trail stage"></main>
     <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
@@ -126,11 +107,12 @@
   <div id="closeOverlay" class="overlay" role="dialog" aria-modal="true" hidden>
     <div class="overlay__card">
       <p class="overlay__eyebrow">Daily Bread</p>
-      <h2 class="overlay__title">The heart is full</h2>
-      <p class="overlay__verse">“But a certain Samaritan, as he journeyed, came where he was: and when he saw him, he had compassion on him.”</p>
-      <p class="overlay__ref">Luke 10:33</p>
-      <p class="overlay__body">Glow was never a prize. It was the trail of a kind choice. You helped. You shared. You did not wait the hurt away.</p>
+      <h2 class="overlay__title" id="closeTitle">The heart is full</h2>
+      <p class="overlay__verse" id="closeVerse"></p>
+      <p class="overlay__ref" id="closeRef"></p>
+      <p class="overlay__body" id="closeBody"></p>
       <button class="btn btn--primary" id="restartBtn" type="button">Walk again</button>
+      <button class="btn" id="chooseStoryBtn" type="button">Choose another story</button>
     </div>
   </div>
 
