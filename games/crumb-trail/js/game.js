@@ -185,6 +185,93 @@
           ]
         }
       ]
+    },
+    {
+      id: "prodigal",
+      title: "The Prodigal Son",
+      blurb: "A son comes to his senses, far from home.",
+      heartLabel: "Welcomed Home",
+      verse: "“But when he was yet a great way off, his father saw him, and had compassion, and ran, and fell on his neck, and kissed him.”",
+      verseRef: "Luke 15:20",
+      closeTitle: "The heart is full",
+      closeBody: "Glow was never about earning it back. It was the trail of a homeward choice. You got up. You went home. You let yourself be welcomed.",
+      stages: [
+        {
+          type: "path",
+          title: "Leaving home",
+          subtitle: "Tap the glowing crumb. Follow the road away.",
+          start: { x: 12, y: 86 },
+          crumbs: [
+            { x: 22, y: 74 },
+            { x: 40, y: 66 },
+            { x: 58, y: 54 },
+            { x: 76, y: 44 }
+          ],
+          decoys: [
+            { x: 30, y: 50 },
+            { x: 62, y: 78 }
+          ],
+          scene: "city"
+        },
+        {
+          type: "match",
+          title: "Counting the coins",
+          subtitle: "Watch the coin marks. Tap them back in order.",
+          length: 3
+        },
+        {
+          type: "fork",
+          title: "Feeding the pigs",
+          subtitle: "The money is gone. The famine is real.",
+          scene: "pigs",
+          eyebrow: "Far from home",
+          heading: "Nothing left",
+          body: "The inheritance is spent. The fields are dry. Even the pig's food starts to look good.",
+          choices: [
+            { word: "Go home", flavor: "Get up now. Go home and say it plainly: I have sinned.", glow: "You turned around. The road home glows warmer." },
+            { word: "Practice the words", flavor: "Rehearse it on the way: I am no longer worthy to be called your son.", glow: "Honest words, ready to say. The path glows warmer." },
+            { word: "Stay one more day", flavor: "Maybe things will turn around here first.", redirect: "One more day here is still one more day away. The road home is still waiting." }
+          ]
+        },
+        {
+          type: "path",
+          title: "The road home",
+          subtitle: "The crumbs glow toward home. Stay with the glow.",
+          start: { x: 16, y: 80 },
+          crumbs: [
+            { x: 28, y: 68 },
+            { x: 44, y: 60 },
+            { x: 52, y: 46 },
+            { x: 68, y: 38 },
+            { x: 82, y: 28 }
+          ],
+          decoys: [
+            { x: 18, y: 42 },
+            { x: 72, y: 64 }
+          ],
+          scene: "field"
+        },
+        {
+          type: "match",
+          title: "The gate mark",
+          subtitle: "Match the gatepost's crumb mark to find the way in.",
+          length: 4
+        },
+        {
+          type: "fork",
+          title: "Running to meet him",
+          subtitle: "Someone is running down the road.",
+          scene: "field",
+          eyebrow: "The father runs",
+          heading: "Welcomed home",
+          body: "The father is running toward you, arms open, before you've said a word.",
+          choices: [
+            { word: "Receive it", flavor: "Let him embrace you. Accept the robe, the ring, the feast.", glow: "You let yourself be loved well. The heart is full." },
+            { word: "Join the feast", flavor: "Go in. Sit at the table. Let the celebration be for you too.", glow: "Grace welcomed all the way in. The heart is full." },
+            { word: "Stay by the gate", flavor: "Surely you should wait outside until you've earned it back.", redirect: "The father is already running. There is nothing left to earn." }
+          ]
+        }
+      ]
     }
   ];
 
@@ -239,6 +326,13 @@
   // sky+ground+silhouette style throughout. "city" and "inn" carry the
   // Good Samaritan road; "field" and "barn" carry the harvest story.
   function sceneSvg(kind) {
+    if (kind === "pigs") {
+      // The one photographic scene among these - reserved for the Prodigal
+      // Son's lowest point, so it reads as a real change of place rather
+      // than another flat backdrop. .trail-scene img.backdrop mirrors the
+      // svg.backdrop positioning rule below.
+      return `<img class="backdrop" src="assets/ui/pigs-scene.jpg" alt="">`;
+    }
     if (kind === "inn") {
       return `<svg class="backdrop" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <rect width="400" height="500" fill="#7EB8D4"/>
