@@ -46,6 +46,13 @@ body {
 h1, h2, p { margin: 0; }
 button { font: inherit; color: inherit; }
 
+/* Keep tappable controls at least 44 CSS pixels on every viewport. */
+button,
+a.sq-studio {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 /* ------------------------------- Opening -------------------------------- */
 #sq-open {
   position: fixed;
@@ -91,6 +98,7 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  min-width: 44px;
   min-height: 48px;
 }
 #sq-open .sq-continue {
@@ -145,7 +153,9 @@ button { font: inherit; color: inherit; }
   color: #fff6eb;
   background: rgba(26, 18, 12, 0.78);
   border: 2px solid #e8a838;
-  padding: 4px 8px 4px 4px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px 8px 8px;
   font-family: "Fredoka", Georgia, serif;
   font-size: 12px;
   font-weight: 700;
@@ -298,6 +308,8 @@ button { font: inherit; color: inherit; }
   position: absolute;
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   margin: 0;
   padding: 0;
   border: 3px solid var(--cookie-dark);
@@ -321,7 +333,7 @@ button { font: inherit; color: inherit; }
   animation: soft-glow 1.5s ease-in-out infinite;
 }
 .crumb.is-shake { animation: gentle-shake 480ms ease; }
-.crumb:active { transform: translate(-50%, -50%) scale(0.94); }
+.crumb:active { filter: brightness(0.96); }
 
 @keyframes soft-glow {
   0%, 100% { box-shadow: 0 0 0 3px rgba(255, 246, 235, 0.4), 0 0 12px 4px rgba(244, 185, 66, 0.45); }
@@ -390,6 +402,7 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   display: grid;
   place-items: center;
+  min-width: 44px;
   min-height: 72px;
 }
 .match-pad svg { width: 58%; height: 58%; display: block; }
@@ -489,6 +502,7 @@ button { font: inherit; color: inherit; }
   padding: 12px 14px;
   text-align: left;
   cursor: pointer;
+  min-width: 44px;
   min-height: 56px;
 }
 .fork-btn strong {
@@ -513,6 +527,7 @@ button { font: inherit; color: inherit; }
   padding: 12px 20px;
   font-weight: 800;
   cursor: pointer;
+  min-width: 44px;
   min-height: 48px;
 }
 .btn--primary {
@@ -542,7 +557,6 @@ button { font: inherit; color: inherit; }
 .toast[hidden] { display: none; }
 
 @media (max-width: 380px) {
-  .crumb { width: 38px; height: 38px; }
   .loaf { width: 50px; height: 50px; }
   .overlay__title { font-size: 21px; }
 }
