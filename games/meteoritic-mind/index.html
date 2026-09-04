@@ -62,6 +62,26 @@
             pointer-events: none;
         }
         #lives { letter-spacing: 4px; }
+        /* Lets the player pick their own pace - tap to cycle 0.75x/1x/1.25x/1.5x.
+           Sits outside #hud (which is pointer-events:none) so it's tappable
+           on its own, out of the way of flying/firing on the canvas. */
+        #speedBtn {
+            position: absolute;
+            bottom: 10px; right: 10px;
+            z-index: 25;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 14px;
+            padding: 6px 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: clamp(12px, 3.2vw, 14px);
+            color: #fff;
+            text-shadow: 0 2px 4px #000;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
         #quizBanner {
             position: absolute;
             top: 34px; left: 10px; right: 10px;
@@ -242,6 +262,7 @@
     </div>
     <div id="quizBanner">Get ready...</div>
     <div id="feedback" class="hidden"></div>
+    <div id="speedBtn" title="Tap to change game speed">1x</div>
     <div id="levelUp" class="hidden"></div>
     <div id="funFactWrap"><div id="funFact"><span id="funFactText"></span><span id="funFactHint">TAP TO CONTINUE</span></div></div>
     <div id="gameOver" class="hidden">
@@ -298,6 +319,7 @@ const funFactEl = document.getElementById('funFact');
 const funFactWrapEl = document.getElementById('funFactWrap');
 const funFactTextEl = document.getElementById('funFactText');
 const levelUpEl = document.getElementById('levelUp');
+const speedBtnEl = document.getElementById('speedBtn');
 
 function loadImage(src) {
     const img = new Image();
@@ -559,9 +581,9 @@ const QUESTIONS = [
     { q: 'What galaxy is heading toward a collision with the Milky Way?', choices: ['Triangulum', 'Andromeda', 'Whirlpool'], correct: 1 },
 ];
 
-// "Did you know" cards - shown as an intermission between rounds of quiz
-// questions (every 3 correct answers) or on a level-up, never as text
-// sitting in front of live gameplay.
+// "Did you know" cards - shown as an intermission between levels only
+// (see checkLevelUp), never mid-level and never as text sitting in front
+// of live gameplay.
 const DID_YOU_KNOW = [
     "Did you know? A “shooting star” isn't a rock - it's a meteoroid burning up in our air. What lands is a meteorite.",
     "Did you know? The asteroid belt has millions of rocks, but all of them together are smaller than our Moon.",
@@ -620,7 +642,6 @@ let questionQueue = [];
 let queuePos = 0;
 let waveEndAt = 0;   // 0 = no wave currently scheduled to start
 let waveIsRetry = false;
-let correctCount = 0; // every 3rd correct answer, a "Did you know" card runs between rounds
 let feedbackTimer = null;
 
 function buildQuestionQueue() {
@@ -641,7 +662,7 @@ function spawnQuizWave(retry) {
     quizMeteors = options.map((o, i) => ({
         x: slots[i],
         y: -QUIZ_METEOR_SIZE - i * 55,
-        speed: 0.4 + Math.random() * 0.2,
+        speed: 0.9 + Math.random() * 0.4,
         text: o.text,
         correct: o.correct,
         hit: false,
@@ -791,7 +812,6 @@ function resetGame() {
     clearTimeout(feedbackTimer);
     waveEndAt = performance.now() + 500;
     waveIsRetry = false;
-    correctCount = 0;
     buildFactQueue();
     funFactWrapEl.classList.remove('show');
     funFactEl.classList.remove('theme-l5');
@@ -830,18 +850,14 @@ function resolveCollisions(time) {
                 spawnExplosion(s.x, s.y, QUIZ_METEOR_SIZE);
                 if (s.correct) {
                     score += 50;
-                    correctCount += 1;
                     updateHud();
                     showFeedback('✓ Correct!', true);
                     quizMeteors.forEach(other => { other.hit = true; }); // clear the rest of the wave
-                    if (correctCount % 3 === 0) {
-                        // Round cleared - run a "Did you know" card as an
-                        // intermission before the next round of questions.
-                        showDidYouKnow();
-                    } else {
-                        waveEndAt = performance.now() + 1400;
-                        waveIsRetry = false;
-                    }
+                    // Move straight to the next question; checkLevelUp() below
+                    // is the only place a "Did you know" card runs, and it
+                    // overrides this with a hold if this answer leveled us up.
+                    waveEndAt = performance.now() + 1400;
+                    waveIsRetry = false;
                     checkLevelUp();
                     checkWin();
                 } else {
@@ -886,6 +902,26 @@ function resolveCollisions(time) {
     asteroids = asteroids.filter(a => a.y < GAME_H + 900);
     hearts = hearts.filter(h => h.y < GAME_H + 900);
 }
+
+// ---------- Game speed ----------
+// A player-facing pace control - tapping the pill in the corner cycles
+// through it. Only scales motion (background/ship/bullets/hazards/quiz
+// meteors), applied by scaling dt before it reaches each update function;
+// real-time schedules (spawn timing, banners, invulnerability) are left
+// alone so the game doesn't also get more/less forgiving as it speeds up.
+const SPEED_LEVELS = [0.75, 1, 1.25, 1.5];
+let speedIndex = 1;
+let gameSpeed = SPEED_LEVELS[speedIndex];
+function updateSpeedLabel() {
+    speedBtnEl.textContent = SPEED_LEVELS[speedIndex] + 'x';
+}
+speedBtnEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    speedIndex = (speedIndex + 1) % SPEED_LEVELS.length;
+    gameSpeed = SPEED_LEVELS[speedIndex];
+    updateSpeedLabel();
+});
+updateSpeedLabel();
 
 // ---------- Input ----------
 // Keyboard: arrows or WASD to fly, space to fire, 1-5 to preview a tier
@@ -1002,15 +1038,16 @@ function loop(time) {
     lastTime = time;
 
     if (gameStarted && !gameOver) {
+        const scaledDt = dt * gameSpeed;
         if (pointerDown && !dragging && (time - pointerDown.t) > TAP_MAX_HOLD_MS) engageDrag(pointerDown);
-        updateLayers(dt);
-        updatePlayer(dt);
-        updateFlame(dt);
+        updateLayers(scaledDt);
+        updatePlayer(scaledDt);
+        updateFlame(scaledDt);
         if (keys.fire) tryFire(time);
-        updateBullets(dt);
-        updateAsteroids(dt, time);
-        updateQuizMeteors(dt);
-        updateHearts(dt, time);
+        updateBullets(scaledDt);
+        updateAsteroids(scaledDt, time);
+        updateQuizMeteors(scaledDt);
+        updateHearts(scaledDt, time);
         resolveCollisions(time);
         maybeSpawnQuizWave(time);
     }
