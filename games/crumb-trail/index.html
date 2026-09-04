@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#E8A838">
   <title>Crumb Trail</title>
-  <meta name="description" content="Follow the crumb path. Choose Help, Share, or Wait. A Daily Bread parable walk with a Good Samaritan heart. No ads.">
+  <meta name="description" content="Follow the crumb path and choose your word at the fork. Two Daily Bread parable walks - the Good Samaritan and the Rich Fool. No ads.">
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,9 +48,15 @@
         <img class="sq-howto-scroll" src="assets/ui/scroll.png" alt="">
         <h2>How to play</h2>
         <p>Follow the crumb path. A soft glow marks the next true crumb. A wrong crumb only gives a gentle redirect. Never a scolding.</p>
-        <p>When the road forks, choose a word: Help, Share, or Wait. Kindness fills the Good Samaritan heart.</p>
+        <p>When the road forks, choose a word. Kindness fills the heart - one choice each story only offers a redirect, never a fill.</p>
         <p>No ads. No rush. A short walk you can finish in a snack sized moment.</p>
         <button type="button" class="sq-play" id="sq-play"><img src="assets/ui/play-button.png" alt=""><span class="sr-only">Play</span></button>
+      </div>
+    </div>
+    <div class="sq-levels" id="sq-levels">
+      <div class="sq-levels-card">
+        <h2>Choose a story</h2>
+        <ul class="level-list" id="levelList"></ul>
       </div>
     </div>
   </div>
@@ -61,7 +67,7 @@
         <p class="track-tag">Daily Bread</p>
         <div class="heart-meter" id="heartMeter" aria-label="Good Samaritan heart, empty">
           <img class="crook-icon" src="assets/ui/crook.png" alt="">
-          <span>Good Samaritan</span>
+          <span id="heartLabel">Good Samaritan</span>
           <span class="heart-meter__hearts">
             <img class="heart-icon" id="heart1" src="assets/ui/heart.png" alt="">
             <img class="heart-icon" id="heart2" src="assets/ui/heart.png" alt="">
@@ -101,11 +107,12 @@
   <div id="closeOverlay" class="overlay" role="dialog" aria-modal="true" hidden>
     <div class="overlay__card">
       <p class="overlay__eyebrow">Daily Bread</p>
-      <h2 class="overlay__title">The heart is full</h2>
-      <p class="overlay__verse">“But a certain Samaritan, as he journeyed, came where he was: and when he saw him, he had compassion on him.”</p>
-      <p class="overlay__ref">Luke 10:33</p>
-      <p class="overlay__body">Glow was never a prize. It was the trail of a kind choice. You helped. You shared. You did not wait the hurt away.</p>
+      <h2 class="overlay__title" id="closeTitle">The heart is full</h2>
+      <p class="overlay__verse" id="closeVerse"></p>
+      <p class="overlay__ref" id="closeRef"></p>
+      <p class="overlay__body" id="closeBody"></p>
       <button class="btn btn--primary" id="restartBtn" type="button">Walk again</button>
+      <button class="btn" id="chooseStoryBtn" type="button">Choose another story</button>
     </div>
   </div>
 

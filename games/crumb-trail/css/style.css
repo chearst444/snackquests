@@ -175,6 +175,69 @@ a.sq-studio {
 }
 #sq-open.is-howto .sq-stage { display: none; }
 #sq-open.is-howto .sq-howto { display: block; }
+#sq-open .sq-levels {
+  display: none;
+  width: min(100%, 560px);
+  max-height: 92dvh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 8px;
+}
+#sq-open.is-levels .sq-stage,
+#sq-open.is-levels .sq-howto { display: none; }
+#sq-open.is-levels .sq-levels { display: block; }
+#sq-open .sq-levels-card {
+  background: var(--paper);
+  background-clip: padding-box;
+  color: #3b2a1a;
+  border-style: solid;
+  border-width: 30px;
+  border-image: url(../assets/ui/card-frame.png) 150 / 30px stretch;
+  padding: 12px 14px 18px;
+  text-align: center;
+  box-sizing: border-box;
+}
+#sq-open .sq-levels-card h2 {
+  margin: 0 0 14px;
+  font-family: "Fredoka", Georgia, serif;
+  font-size: clamp(22px, 5vw, 30px);
+  line-height: 1.2;
+}
+.level-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.level-btn {
+  width: 100%;
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 14px;
+  border-image: url(../assets/ui/badge-frame.png) 90 / 14px stretch;
+  background: var(--white);
+  background-clip: padding-box;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 56px;
+}
+.level-btn strong {
+  display: block;
+  font-family: "Fredoka", "Trebuchet MS", sans-serif;
+  font-size: 18px;
+  color: var(--ink);
+}
+.level-btn span {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.level-btn:active { transform: translateY(2px); }
 #sq-open .sq-howto-card {
   background: var(--paper);
   background-clip: padding-box;
@@ -647,9 +710,13 @@ a.sq-studio {
   color: var(--ink-soft);
   margin-top: 2px;
 }
-.fork-btn[data-word="Help"] { background: #e7f6ea; }
-.fork-btn[data-word="Share"] { background: #fff4c4; }
-.fork-btn[data-word="Wait"] { background: #f3e6d8; }
+/* Colored by role, not by the literal word - which word is the redirect
+   varies by story (it's "Wait" for the Samaritan, "Store it all" for the
+   Rich Fool), so buildForkStage() assigns these classes itself instead of
+   matching a specific label here. */
+.fork-btn--glow-a { background: #e7f6ea; }
+.fork-btn--glow-b { background: #fff4c4; }
+.fork-btn--redirect { background: #f3e6d8; }
 .fork-btn:active { transform: translateY(2px); }
 
 .btn {
@@ -663,6 +730,14 @@ a.sq-studio {
   cursor: pointer;
   min-width: 44px;
   min-height: 44px;
+}
+#chooseStoryBtn {
+  background: var(--paper);
+  background-clip: padding-box;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 2px;
 }
 .btn--primary {
   background: var(--gold);
