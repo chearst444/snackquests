@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Merge the hand-written clue batches with map geometry.
+
+The batch files carry no coordinates, and the game needs something to click.
+Each entry here adds: `at` (one or more [lon, lat] anchors -- a list, so that
+rivers and seas can be traced rather than pinned), `radiusKm` (how close a
+click has to land), and `group` (the round filter).
+
+Coordinates are the real ones, and several of them are genuinely on top of
+each other: Golgotha and Mount Moriah are 500 m apart, and Horeb *is* Sinai,
+the same summit under a second name. Nothing here is nudged to make the map
+easier -- the game resolves the crowding by zooming, and asks which one the
+player means when even that is not enough.
+"""
+import json, collections, pathlib, re
+
+ROOT = pathlib.Path(__file__).resolve().parent
+
+# The Holy Land was 57 of the 93 places -- three fifths of the game in one
+# round. Split by where they actually sit: the Judean hills and the Dead Sea,
+# the central hills and the Philistine coast, and Galilee northward.
+JUDEA, COAST, NORTH, EGYPT, EAST, ASIA = (
+    "Jerusalem & Judea", "Samaria & the Coast", "Galilee & the North",
+    "Egypt & Sinai", "Mesopotamia & the East", "Greece, Rome & Asia Minor")
+
+GEO = {
+    # City-sized targets: one anchor, tight radius.
+    "Jerusalem":   dict(at=[[35.2137, 31.7683]], radiusKm=22, group=JUDEA),
+    "Bethlehem":   dict(at=[[35.2020, 31.7054]], radiusKm=14, group=JUDEA),
+    "Nazareth":    dict(at=[[35.3035, 32.6996]], radiusKm=22, group=NORTH),
+    "Jericho":     dict(at=[[35.4444, 31.8667]], radiusKm=20, group=JUDEA),
+    "Bethany":     dict(at=[[35.2620, 31.7714]], radiusKm=12, group=JUDEA),
+    "Capernaum":   dict(at=[[35.5750, 32.8808]], radiusKm=20, group=NORTH),
+    "Damascus":    dict(at=[[36.2919, 33.5138]], radiusKm=45, group=EAST),
+    "Babylon":     dict(at=[[44.4211, 32.5355]], radiusKm=55, group=EAST),
+    "Ur":          dict(at=[[46.1031, 30.9626]], radiusKm=55, group=EAST),
+    "Nineveh":     dict(at=[[43.1526, 36.3593]], radiusKm=55, group=EAST),
+    "Antioch":     dict(at=[[36.1611, 36.2021]], radiusKm=45, group=ASIA),
+    "Corinth":     dict(at=[[22.9319, 37.9061]], radiusKm=40, group=ASIA),
+    "Ephesus":     dict(at=[[27.3417, 37.9397]], radiusKm=40, group=ASIA),
+    "Patmos":      dict(at=[[26.5470, 37.3086]], radiusKm=35, group=ASIA),
+
+    # Mountains: a peak, but forgiving.
+    "Mount Sinai":  dict(at=[[33.9750, 28.5392]], radiusKm=70, group=EGYPT),
+    "Mount Ararat": dict(at=[[44.2989, 39.7025]], radiusKm=70, group=EAST),
+
+    # Regions and waterways: traced with several anchors so a click anywhere
+    # along the feature reads as correct, not just at an arbitrary midpoint.
+    "Red Sea": dict(at=[[32.55, 29.90], [32.95, 29.25], [33.45, 28.50],
+                        [34.05, 27.60], [34.75, 26.60], [35.30, 25.60]],
+                    radiusKm=90, group=EGYPT),
+    "Jordan River": dict(at=[[35.62, 32.72], [35.58, 32.42], [35.55, 32.14],
+                             [35.53, 31.90], [35.52, 31.78]],
+                         radiusKm=26, group=JUDEA),
+    "Sodom (Dead Sea region)": dict(at=[[35.40, 31.25], [35.46, 31.05],
+                                        [35.48, 31.40]],
+                                    radiusKm=40, group=JUDEA),
+    "Egypt (Goshen)": dict(at=[[31.85, 30.75], [31.35, 30.55], [31.24, 30.05],
+                               [31.10, 29.40], [32.30, 30.60]],
+                           radiusKm=95, group=EGYPT),
+
+    # ---- batch 2 -----------------------------------------------------------
+    # Horeb is Sinai. Same summit, same coordinates, a second set of clues
+    # about Elijah rather than Moses -- so no amount of zooming will ever
+    # separate the two, and the picker is what settles it.
+    "Mount Sinai (Elijah/Horeb)": dict(at=[[33.9750, 28.5392]], radiusKm=70, group=EGYPT),
+
+    # The Jerusalem sites. Radii are small because the neighbours are close,
+    # not to make them fiddly: Golgotha to Mount Moriah is about 500 m.
+    "Golgotha":        dict(at=[[35.2298, 31.7784]], radiusKm=0.7, group=JUDEA),
+    "Mount Moriah":    dict(at=[[35.2354, 31.7780]], radiusKm=0.7, group=JUDEA),
+    "Gethsemane":      dict(at=[[35.2397, 31.7794]], radiusKm=0.7, group=JUDEA),
+    "Mount of Olives": dict(at=[[35.2455, 31.7784]], radiusKm=1.0, group=JUDEA),
+
+    "Shechem":       dict(at=[[35.2806, 32.2137]], radiusKm=8,  group=COAST),
+    "Mount Carmel":  dict(at=[[35.0281, 32.7264]], radiusKm=12, group=NORTH),
+    "Cana":          dict(at=[[35.3417, 32.7472]], radiusKm=7,  group=NORTH),
+    "Emmaus":        dict(at=[[34.9894, 31.8394]], radiusKm=8,  group=JUDEA),
+    "Caesarea":      dict(at=[[34.8917, 32.5000]], radiusKm=10, group=COAST),
+    "Mount Nebo":    dict(at=[[35.7256, 31.7683]], radiusKm=7,  group=JUDEA),
+    "Shiloh":        dict(at=[[35.2894, 32.0556]], radiusKm=7,  group=COAST),
+    "Hebron":        dict(at=[[35.0997, 31.5326]], radiusKm=10, group=JUDEA),
+    "Haran":         dict(at=[[39.0311, 36.8642]], radiusKm=25, group=EAST),
+    "Tarsus":        dict(at=[[34.8950, 36.9177]], radiusKm=20, group=ASIA),
+    "Philippi":      dict(at=[[24.2864, 41.0136]], radiusKm=18, group=ASIA),
+    "Thessalonica":  dict(at=[[22.9444, 40.6403]], radiusKm=20, group=ASIA),
+    "Athens":        dict(at=[[23.7275, 37.9838]], radiusKm=18, group=ASIA),
+
+    # Two peaks flanking Shechem, and one entry covering both.
+    "Mount Gerizim / Mount Ebal": dict(at=[[35.2733, 32.2003], [35.2769, 32.2350]],
+                                       radiusKm=2.5, group=COAST),
+
+    # ---- batch 3 -----------------------------------------------------------
+    # The Upper Room is a fifth entry inside Jerusalem's old city, 750 m from
+    # Golgotha; Sychar's well is 570 m from Shechem. Both stay where they are.
+    "Upper Room (Jerusalem)": dict(at=[[35.2292, 31.7717]], radiusKm=0.6, group=JUDEA),
+    "Sychar (Jacob's Well)":  dict(at=[[35.2839, 32.2094]], radiusKm=1.5, group=COAST),
+
+    "Joppa":            dict(at=[[34.7519, 32.0533]], radiusKm=8,  group=COAST),
+    "Caesarea Philippi":dict(at=[[35.6944, 33.2486]], radiusKm=8,  group=NORTH),
+    "Samaria (city)":   dict(at=[[35.1919, 32.2792]], radiusKm=6,  group=COAST),
+    "Mount Hermon":     dict(at=[[35.8572, 33.4164]], radiusKm=12, group=NORTH),
+    "Bethel":           dict(at=[[35.2361, 31.9308]], radiusKm=5,  group=JUDEA),
+    "Peniel / Jabbok":  dict(at=[[35.6800, 32.1800]], radiusKm=6,  group=JUDEA),
+    "Dothan":           dict(at=[[35.2222, 32.4111]], radiusKm=6,  group=COAST),
+    "Ashkelon":         dict(at=[[34.5500, 31.6667]], radiusKm=8,  group=COAST),
+    "Kadesh-Barnea":    dict(at=[[34.4167, 30.6833]], radiusKm=15, group=EGYPT),
+
+    # Paul's first journey through Lycaonia and Phrygia, and the churches of
+    # Revelation -- Ephesus is already in batch 1.
+    "Lystra":                   dict(at=[[32.4550, 37.5800]], radiusKm=12, group=ASIA),
+    "Derbe":                    dict(at=[[33.3167, 37.3500]], radiusKm=12, group=ASIA),
+    "Iconium":                  dict(at=[[32.4833, 37.8667]], radiusKm=15, group=ASIA),
+    "Colossae":                 dict(at=[[29.2600, 37.7900]], radiusKm=7,  group=ASIA),
+    "Laodicea":                 dict(at=[[29.1078, 37.8361]], radiusKm=7,  group=ASIA),
+    "Smyrna":                   dict(at=[[27.1428, 38.4192]], radiusKm=15, group=ASIA),
+    "Pergamum":                 dict(at=[[27.1833, 39.1200]], radiusKm=12, group=ASIA),
+    "Sardis":                   dict(at=[[28.0400, 38.4886]], radiusKm=10, group=ASIA),
+    "Philadelphia (Asia Minor)":dict(at=[[28.5167, 38.3500]], radiusKm=10, group=ASIA),
+    # The lake itself, anchored out on the water: Capernaum sits on its
+    # northern shore and has to stay tellable from it.
+    "Sea of Galilee": dict(at=[[35.5900, 32.8000], [35.5600, 32.8600],
+                               [35.6250, 32.8300], [35.5650, 32.7500]],
+                           radiusKm=7, group=NORTH),
+
+    # ---- batch 4 -----------------------------------------------------------
+    # Rome and Malta are why the map now reaches Italy.
+    "Rome":  dict(at=[[12.4964, 41.9028]], radiusKm=30, group=ASIA),
+    "Malta": dict(at=[[14.3800, 35.9500]], radiusKm=14, group=ASIA),
+    # An island, traced rather than pinned, so any part of it counts.
+    "Cyprus": dict(at=[[32.9000, 35.1500], [33.5000, 35.0500],
+                       [34.0000, 35.3000], [32.6000, 34.9500]],
+                   radiusKm=25, group=ASIA),
+
+    "Troas":    dict(at=[[26.1589, 39.7500]], radiusKm=12, group=ASIA),
+    "Miletus":  dict(at=[[27.2775, 37.5306]], radiusKm=10, group=ASIA),
+    "Berea":    dict(at=[[22.2025, 40.5236]], radiusKm=12, group=ASIA),
+    "Perga":    dict(at=[[30.8536, 36.9611]], radiusKm=12, group=ASIA),
+    "Susa":     dict(at=[[48.2468, 32.1892]], radiusKm=30, group=EAST),
+
+    # Saul's last days, the Jezreel valley, and Joshua's campaigns -- close
+    # neighbours again: Ai is 2.8 km from Bethel, Mamre 3.8 km from Hebron.
+    "Beersheba":    dict(at=[[34.7913, 31.2518]], radiusKm=12, group=JUDEA),
+    "Dan":          dict(at=[[35.6522, 33.2489]], radiusKm=3,  group=NORTH),
+    "Mizpah":       dict(at=[[35.2161, 31.8869]], radiusKm=4,  group=JUDEA),
+    "Endor":        dict(at=[[35.4053, 32.6300]], radiusKm=5,  group=NORTH),
+    "Mount Gilboa": dict(at=[[35.4100, 32.4900]], radiusKm=8,  group=NORTH),
+    "Jezreel":      dict(at=[[35.3306, 32.5578]], radiusKm=5,  group=NORTH),
+    "Megiddo":      dict(at=[[35.1850, 32.5844]], radiusKm=6,  group=NORTH),
+    "Gibeon":       dict(at=[[35.1847, 31.8464]], radiusKm=4,  group=JUDEA),
+    "Ai":           dict(at=[[35.2611, 31.9172]], radiusKm=3,  group=JUDEA),
+    "Mamre":        dict(at=[[35.1108, 31.5661]], radiusKm=3,  group=JUDEA),
+    "Ziklag":       dict(at=[[34.6892, 31.3928]], radiusKm=12, group=COAST),
+    "En Gedi":      dict(at=[[35.3883, 31.4617]], radiusKm=6,  group=JUDEA),
+
+    # ---- batch 5 -----------------------------------------------------------
+    # Bethphage is 450 m from the Mount of Olives -- level with Gethsemane and
+    # Mount Moriah as the tightest pair on the map that zooming can still
+    # separate. Ramah is 1.7 km from Mizpah.
+    "Bethphage": dict(at=[[35.2489, 31.7756]], radiusKm=0.5, group=JUDEA),
+    "Ramah":     dict(at=[[35.2300, 31.8961]], radiusKm=3,   group=JUDEA),
+
+    # The Phoenician coast, north to south.
+    "Sidon":     dict(at=[[35.3714, 33.5571]], radiusKm=8, group=NORTH),
+    "Zarephath": dict(at=[[35.2900, 33.4531]], radiusKm=4, group=NORTH),
+    "Tyre":      dict(at=[[35.1939, 33.2705]], radiusKm=8, group=NORTH),
+
+    # Four of the five Philistine cities; Ashkelon came in batch 3.
+    "Gaza":   dict(at=[[34.4667, 31.5000]], radiusKm=8, group=COAST),
+    "Ashdod": dict(at=[[34.6497, 31.7522]], radiusKm=6, group=COAST),
+    "Ekron":  dict(at=[[34.8531, 31.7783]], radiusKm=5, group=COAST),
+    "Gath":   dict(at=[[34.8472, 31.6997]], radiusKm=6, group=COAST),
+
+    "Shunem":    dict(at=[[35.3350, 32.6031]], radiusKm=4, group=NORTH),
+    "Bethsaida": dict(at=[[35.6306, 32.9100]], radiusKm=4, group=NORTH),
+    "Arimathea": dict(at=[[35.0333, 32.0167]], radiusKm=8, group=JUDEA),
+    "Shittim":   dict(at=[[35.6200, 31.8300]], radiusKm=8, group=JUDEA),
+}
+
+# ---------------------------------------------------------------------------
+# Which map a location belongs on. Read off the clues themselves: a place whose
+# clues talk about Paul and the churches is a New Testament place, one whose
+# clues talk about the patriarchs and the kings is an Old Testament place, and
+# plenty are both -- Jerusalem, Bethlehem, Damascus. The map follows the clue,
+# so a Revelation church is never shown against Assyria and Babylon.
+NT_WORDS = re.compile(
+    r"jesus|christ|paul|peter|apostle|disciple|gospel|church|revelation|barnabas"
+    r"|silas|timothy|herod|roman|pentecost|crucif|resurrect|baptiz|caesar")
+OT_WORDS = re.compile(
+    r"abraham|isaac|jacob|joseph|moses|joshua|david|solomon|elijah|elisha|samuel"
+    r"|saul|ahab|jezebel|jonah|daniel|esther|noah|israelites|philistin"
+    r"|ark of the covenant|tabernacle|exile|nebuchadnezzar|pharaoh|patriarch"
+    r"|covenant|prophet")
+# Two the words miss: Sodom's clues name only Lot and the angels, and Dan's
+# only the tribe and Jeroboam's calf.
+ERA_OVERRIDE = {"Sodom (Dead Sea region)": "ot", "Dan": "ot"}
+
+
+def era_of(loc):
+    if loc["place"] in ERA_OVERRIDE:
+        return ERA_OVERRIDE[loc["place"]]
+    text = " ".join(loc["clues"] + [loc["didYouKnow"]]).lower()
+    nt, ot = bool(NT_WORDS.search(text)), bool(OT_WORDS.search(text))
+    return "both" if nt and ot else ("nt" if nt else "ot")
+
+
+src = {"locations": []}
+for name in ("bible_facts_batch1.json", "bible_facts_batch2.json",
+             "bible_facts_batch3.json", "bible_facts_batch4.json",
+             "bible_facts_batch5.json"):
+    src["locations"] += json.loads((ROOT / name).read_text())["locations"]
+
+out = []
+for loc in src["locations"]:
+    geo = GEO[loc["place"]]
+    # Clue text, modernCountry, ancientRegion and didYouKnow are carried over
+    # verbatim -- this script only ever adds map geometry.
+    out.append(collections.OrderedDict(
+        place=loc["place"],
+        modernCountry=loc["modernCountry"],
+        ancientRegion=loc["ancientRegion"],
+        era=era_of(loc),
+        group=geo["group"],
+        at=geo["at"],
+        radiusKm=geo["radiusKm"],
+        clues=loc["clues"],
+        didYouKnow=loc["didYouKnow"],
+    ))
+
+doc = collections.OrderedDict(
+    source=["bible_facts_batch1.json", "bible_facts_batch2.json",
+            "bible_facts_batch3.json", "bible_facts_batch4.json",
+            "bible_facts_batch5.json"],
+    notes=("Playable form of every batch. Clues, modernCountry, ancientRegion "
+           "and didYouKnow are verbatim from the source batches; `at` (real "
+           "lon/lat anchors), `radiusKm` (click tolerance) and `group` (round "
+           "filter) were added so the location can be found on the map. "
+           "Regenerate with build_locations.py; do not hand-edit."),
+    locations=out,
+)
+(ROOT / "bible_locations.json").write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+print(f"wrote {len(out)} locations")
+for g in (JUDEA, COAST, NORTH, EGYPT, EAST, ASIA):
+    print(" ", g, sum(1 for o in out if o["group"] == g))
+for e in ("ot", "nt", "both"):
+    print(" ", e, sum(1 for o in out if o["era"] == e))

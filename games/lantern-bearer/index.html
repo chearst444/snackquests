@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>The Lantern Bearer</title>
+    <style>
+        /* The page never scrolls, zooms, or rubber-bands — every gesture
+           belongs to the game, not the browser. */
+        html, body, canvas {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: none;
+            overflow: hidden;
+        }
+        html, body {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            background-color: #0b0914;
+            font-family: monospace;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #gameContainer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                     env(safe-area-inset-bottom) env(safe-area-inset-left);
+            box-sizing: border-box;
+        }
+        canvas {
+            border: 2px solid #3a2e5d;
+            background: #131124;
+            box-shadow: 0 0 25px rgba(58, 46, 93, 0.4);
+            display: block;
+            /* Sized in JS to fit the viewport at a fixed 16:9 aspect */
+        }
+        .instructions {
+            margin-top: 15px;
+            color: #8b7eb3;
+            font-size: 14px;
+            letter-spacing: 1px;
+            padding: 0 12px;
+        }
+
+        /* --- TOUCH LAYER (only mounted on touch devices) --- */
+        #touchLayer {
+            position: fixed;
+            inset: 0;
+            display: none;
+            touch-action: none;
+            z-index: 10;
+        }
+        body.touch-mode #touchLayer { display: block; }
+        body.touch-mode .instructions { display: none; }
+
+        /* Dual-zone drag surfaces: walk on the left, turn on the right */
+        .zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            touch-action: none;
+        }
+        #zoneMove { left: 0; }
+        #zoneLook { right: 0; }
+
+        /* Analog stick, drawn where the thumb lands */
+        #stickBase, #stickKnob {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            transform: translate(-50%, -50%);
+        }
+        #stickBase {
+            width: 130px; height: 130px;
+            border: 2px solid rgba(139, 126, 179, 0.45);
+            background: rgba(19, 17, 36, 0.28);
+        }
+        #stickKnob {
+            width: 58px; height: 58px;
+            background: rgba(255, 223, 142, 0.32);
+            border: 2px solid rgba(255, 223, 142, 0.65);
+        }
+        #stickBase.on, #stickKnob.on { opacity: 1; }
+
+        /* Action buttons, bottom right, clear of the safe area */
+        #hudButtons {
+            position: absolute;
+            right: calc(18px + env(safe-area-inset-right));
+            bottom: calc(22px + env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 14px;
+            align-items: center;
+        }
+        .hudBtn {
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            border: 2px solid rgba(139, 126, 179, 0.7);
+            background: rgba(19, 17, 36, 0.55);
+            color: #ffeba3;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.25;
+            letter-spacing: 1px;
+            /* No double-tap zoom, no callout, no text selection */
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .hudBtn .glyph { font-size: 24px; }
+        .hudBtn.pressed {
+            background: rgba(90, 74, 138, 0.75);
+            border-color: rgba(255, 223, 142, 0.9);
+        }
+        .hudBtn.on {
+            border-color: rgba(255, 213, 107, 0.95);
+            box-shadow: 0 0 14px rgba(255, 213, 107, 0.4);
+        }
+    </style>
+<style>
+
+        #sq-open {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        #sq-open.is-off { display: none !important; }
+        #sq-open .sq-stage {
+            position: relative;
+            width: min(100%, 1400px);
+            max-height: 100%;
+            max-height: 100dvh;
+        }
+        #sq-open .sq-art {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 100dvh;
+            object-fit: contain;
+        }
+        #sq-open.pixel .sq-art {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #sq-open .sq-play {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: none;
+            border: 0;
+            padding: 12px 16px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-play img {
+            display: block;
+            width: 276px;
+            height: 87px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            image-rendering: -moz-crisp-edges;
+            pointer-events: none;
+        }
+        @media (max-width: 640px) {
+            #sq-open .sq-play img { width: 184px; height: 58px; }
+        }
+
+        #sq-open .sq-continue {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(16px, 4vw, 22px);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 12px 22px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-howto {
+            display: none;
+            width: min(100%, 560px);
+            max-height: 92dvh;
+            overflow: auto;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        #sq-open.is-howto .sq-stage { display: none; }
+        #sq-open.is-howto .sq-howto { display: block; }
+        #sq-open .sq-howto-card {
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            padding: 22px 20px 16px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #sq-open .sq-howto-card h2 {
+            margin: 0 0 12px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(22px, 5vw, 30px);
+            line-height: 1.2;
+        }
+        #sq-open .sq-howto-card p {
+            margin: 0 0 10px;
+            font-size: clamp(15px, 3.6vw, 18px);
+            line-height: 1.45;
+            text-align: left;
+        }
+        #sq-open.is-howto .sq-play {
+            position: static;
+            transform: none;
+            margin: 10px auto 0;
+            display: inline-block;
+        }
+
+        #sq-open .sq-studio {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #fff6eb;
+            background: rgba(26, 18, 12, 0.78);
+            border: 2px solid #e8a838;
+            padding: 4px 8px 4px 4px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #sq-open .sq-studio svg {
+            display: block;
+            width: 22px;
+            height: 22px;
+            flex: none;
+        }
+
+
+
+</style>
+</head>
+<body>
+<div id="sq-open" role="dialog" aria-modal="true" aria-label="The Lantern Bearer">
+    <a class="sq-studio" href="https://snackquests.com" id="sq-studio">
+    <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true" focusable="false">
+      <ellipse cx="32" cy="38" rx="20" ry="14" fill="#E8A838"/>
+      <ellipse cx="32" cy="34" rx="18" ry="11" fill="#F4B942"/>
+      <circle cx="24" cy="34" r="2.2" fill="#3B2A1A"/>
+      <circle cx="40" cy="34" r="2.2" fill="#3B2A1A"/>
+      <path d="M26 40c2 2.4 10 2.4 12 0" fill="none" stroke="#3B2A1A" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Snack Quests</span>
+  </a>
+<div class="sq-stage" id="sq-art-screen">
+    <img class="sq-art" src="assets/opening.jpg" alt="The Lantern Bearer">
+    <button type="button" class="sq-continue" id="sq-continue">Tap to continue</button>
+  </div>
+  <div class="sq-howto" id="sq-howto">
+    <div class="sq-howto-card">
+      <h2>How to play</h2>
+      <p>Carry the lantern. Walk the path through the mist.</p>
+      <button type="button" class="sq-play" id="sq-play" aria-label="Play">
+        <img src="assets/btn_play.png" alt="PLAY" width="92" height="29">
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div id="gameContainer">
+    <canvas id="gameCanvas" width="1024" height="576"></canvas>
+    <div class="instructions">
+        <b>A / D</b> or <b>← / → Arrows</b> to walk • Share your light — awakened travelers will join your journey
+    </div>
+</div>
+
+<!-- Mobile HUD overlaid on the canvas -->
+<div id="touchLayer">
+    <div class="zone" id="zoneMove"></div>
+    <div class="zone" id="zoneLook"></div>
+    <div id="stickBase"></div>
+    <div id="stickKnob"></div>
+    <div id="hudButtons">
+        <button class="hudBtn" id="btnLantern" type="button">
+            <span class="glyph">✦</span><span>LIGHT</span>
+        </button>
+        <button class="hudBtn" id="btnGreet" type="button">
+            <span class="glyph">☀</span><span>GREET</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- 1. GAME PROGRESSION STATE ---
+    const gameWorld = {
+        currentScene: 1,
+        totalScenes: 6,
+        floorY: 460,
+        lanternsLit: 0,
+        time: 0
+    };
+
+    // Each stage of the journey has its own mood: a name, how deep the
+    // darkness sits, and which atmosphere effect drifts through it.
+    const sceneMoods = {
+        1: { name: "The Dark Forest",      darkness: 0.93, fx: 'none' },
+        2: { name: "The Misty Valley",     darkness: 0.90, fx: 'fog'  },
+        3: { name: "The Mountain Pass",    darkness: 0.92, fx: 'wind' },
+        4: { name: "The Ancient Ruins",    darkness: 0.93, fx: 'none' },
+        5: { name: "The Approaching Dawn", darkness: 0.66, fx: 'motes' },
+        6: { name: "The City of Light",    darkness: 0.28, fx: 'motes' }
+    };
+
+    const backgroundLayer = new Image();
+
+    // --- 2. IMAGE PRELOADER DIRECTORY ---
+    // A failed image still reports complete === true, so we track a real
+    // "ok" flag — the game falls back to painted vector art until your
+    // hand-drawn PNGs exist in assets/, then uses them automatically.
+    const images = {};
+    function loadImage(key, src) {
+        const img = new Image();
+        img.ok = false;
+        img.onload = () => { img.ok = true; };
+        img.src = 'assets/' + src;
+        images[key] = img;
+    }
+
+    loadImage('bearer_stand_right', 'bearer_stand_right.png');
+    loadImage('bearer_stand_left', 'bearer_stand_left.png');
+    loadImage('bearer_walk_right_0', 'bearer_walk_right_1.png');
+    loadImage('bearer_walk_right_1', 'bearer_walk_right_2.png');
+    loadImage('bearer_walk_left_0', 'bearer_walk_left_1.png');
+    loadImage('bearer_walk_left_1', 'bearer_walk_left_2.png');
+
+    loadImage('traveler_shadow', 'traveler_shadow.png');   // Resting in dark
+    loadImage('traveler_glowing', 'traveler_glowing.png'); // Awakened by light
+
+    function imageReady(img) {
+        return img && img.ok && img.naturalWidth > 0;
+    }
+
+    // --- 3. CHARACTER CONFIGURATIONS ---
+    const bearer = {
+        x: 100,
+        width: 80,
+        height: 160,
+        speed: 4,
+        facing: 'right',
+        currentState: 'stand',
+        animTimer: 0,
+        walkFrame: 0,
+        lanternRadius: 200,
+        lanternBaseRadius: 200,
+        lanternWideRadius: 300,
+        lanternTarget: 200,
+        lanternWide: false
+    };
+
+    let activeTravelers = [];
+    let companions = [];      // Awakened travelers walking the road with you
+    let lightParticles = [];
+    let atmosphere = [];      // Fog banks, wind streaks, or floating motes
+
+    // --- 4. SCENE SCENARIO MANAGER ---
+    function loadScene(sceneNumber) {
+        gameWorld.currentScene = sceneNumber;
+        activeTravelers = [];
+        atmosphere = [];
+
+        // Your Scene1.png..Scene6.png replace the painted backdrop when present
+        backgroundLayer.ok = false;
+        backgroundLayer.onload = () => { backgroundLayer.ok = true; };
+        backgroundLayer.src = 'assets/Scene' + sceneNumber + '.png';
+        console.log("Entering Journey Stage: " + sceneNumber);
+
+        switch (sceneNumber) {
+            case 1: // The Dark Forest
+                spawnTraveler(680, "Thank you for bringing the warmth...");
+                break;
+            case 2: // The Misty Valley
+                spawnTraveler(520, "I lost my footing in the fog.");
+                break;
+            case 3: // The Mountain Pass
+                spawnTraveler(430, "The wind was so cold...");
+                spawnTraveler(780, "I can see the trail again!");
+                break;
+            case 4: // The Ancient Ruins
+                spawnTraveler(620, "This old place feels softer now.");
+                break;
+            case 5: // The Approaching Dawn
+                spawnTraveler(470, "Look! The stars are fading.");
+                spawnTraveler(820, "The morning is almost here.");
+                break;
+            case 6: // The City of Light — residents welcome you home
+                spawnTraveler(430, "We made it through the night!", true);
+                spawnTraveler(620, "Look how beautiful the gates look.", true);
+                spawnTraveler(820, "Welcome home, bearer of light.", true);
+                break;
+        }
+
+        // Awakened companions walk in from the left edge behind you
+        companions.forEach((c, i) => { c.x = -60 - i * 70; });
+
+        // Seed this stage's drifting atmosphere
+        const fx = sceneMoods[sceneNumber].fx;
+        if (fx === 'fog') {
+            for (let i = 0; i < 12; i++) {
+                atmosphere.push({
+                    x: Math.random() * canvas.width,
+                    y: 240 + Math.random() * 260,
+                    r: 70 + Math.random() * 120,
+                    speed: 0.15 + Math.random() * 0.35,
+                    alpha: 0.05 + Math.random() * 0.08
+                });
+            }
+        } else if (fx === 'wind') {
+            for (let i = 0; i < 14; i++) {
+                atmosphere.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    len: 40 + Math.random() * 90,
+                    speed: 5 + Math.random() * 6
+                });
+            }
+        } else if (fx === 'motes') {
+            const count = sceneNumber === 6 ? 26 : 12;
+            for (let i = 0; i < count; i++) {
+                atmosphere.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * gameWorld.floorY,
+                    phase: Math.random() * Math.PI * 2,
+                    r: 1.5 + Math.random() * 2.5
+                });
+            }
+        }
+    }
+
+    function spawnTraveler(xPos, message, alreadyLit) {
+        activeTravelers.push({
+            x: xPos,
+            width: 70,
+            height: 130,
+            isLit: !!alreadyLit,
+            atHome: !!alreadyLit,   // City residents celebrate but don't rejoin the road
+            greeted: false,
+            message: message,
+            robeHue: 210 + Math.random() * 90,
+            glowRadius: alreadyLit ? 110 : 0,
+            joinDelay: 0,
+            textDisplayTimer: 0
+        });
+    }
+
+    function spawnLightPoof(xPos, yPos) {
+        for (let i = 0; i < 25; i++) {
+            lightParticles.push({
+                x: xPos,
+                y: yPos,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 1.8) * 2 - 1, // Elevate gently upwards
+                radius: Math.random() * 5 + 2,
+                alpha: 1,
+                color: `hsla(${Math.random() * 25 + 35}, 100%, 72%, ` // Warm gold palette
+            });
+        }
+    }
+
+    // --- 5. INPUT CONTROLS (keyboard + unified pointer events) ---
+    const keys = { left: false, right: false };
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'a' || e.key === 'ArrowLeft') {
+            keys.left = true;
+            bearer.facing = 'left';
+        }
+        if (e.key === 'd' || e.key === 'ArrowRight') {
+            keys.right = true;
+            bearer.facing = 'right';
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
+        if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
+    });
+
+    // Analog stick vector from the left-hand drag zone: -1 (full left)
+    // .. +1 (full right). Keyboard stays authoritative when it is held.
+    const stick = { pointerId: null, vector: 0, originX: 0, originY: 0 };
+    const STICK_DEADZONE = 10;   // px of thumb travel before we start walking
+    const STICK_RANGE = 62;      // px of travel that means "full speed"
+
+    const TOUCH_MODE = window.matchMedia('(pointer: coarse)').matches
+        || navigator.maxTouchPoints > 0
+        || location.search.includes('touch');
+
+    const touchLayer = document.getElementById('touchLayer');
+    const zoneMove = document.getElementById('zoneMove');
+    const zoneLook = document.getElementById('zoneLook');
+    const stickBase = document.getElementById('stickBase');
+    const stickKnob = document.getElementById('stickKnob');
+    const btnLantern = document.getElementById('btnLantern');
+    const btnGreet = document.getElementById('btnGreet');
+
+    if (TOUCH_MODE) document.body.classList.add('touch-mode');
+
+    function placeStick(el, x, y) {
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+    }
+
+    // LEFT ZONE — walking. The stick springs up wherever the thumb lands.
+    zoneMove.addEventListener('pointerdown', (e) => {
+        if (stick.pointerId !== null) return;
+        e.preventDefault();
+        zoneMove.setPointerCapture(e.pointerId);
+        stick.pointerId = e.pointerId;
+        stick.originX = e.clientX;
+        stick.originY = e.clientY;
+        stick.vector = 0;
+        placeStick(stickBase, e.clientX, e.clientY);
+        placeStick(stickKnob, e.clientX, e.clientY);
+        stickBase.classList.add('on');
+        stickKnob.classList.add('on');
+    });
+
+    zoneMove.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== stick.pointerId) return;
+        e.preventDefault();
+        const dx = e.clientX - stick.originX;
+        const mag = Math.abs(dx);
+        stick.vector = mag < STICK_DEADZONE
+            ? 0
+            : Math.sign(dx) * Math.min((mag - STICK_DEADZONE) / STICK_RANGE, 1);
+        // The knob follows the thumb horizontally, clamped to the ring
+        const knobX = stick.originX + Math.max(-STICK_RANGE, Math.min(STICK_RANGE, dx));
+        const dy = Math.max(-STICK_RANGE, Math.min(STICK_RANGE, e.clientY - stick.originY));
+        placeStick(stickKnob, knobX, stick.originY + dy);
+    });
+
+    function releaseStick(e) {
+        if (e.pointerId !== stick.pointerId) return;
+        stick.pointerId = null;
+        stick.vector = 0;
+        stickBase.classList.remove('on');
+        stickKnob.classList.remove('on');
+    }
+    zoneMove.addEventListener('pointerup', releaseStick);
+    zoneMove.addEventListener('pointercancel', releaseStick);
+
+    // RIGHT ZONE — this journey has no camera to orbit, so the look drag
+    // turns the bearer instead: swipe the way you want them to face and
+    // hold the lantern out, without taking a step.
+    const look = { pointerId: null, lastX: 0, travel: 0 };
+    const LOOK_THRESHOLD = 24;
+
+    zoneLook.addEventListener('pointerdown', (e) => {
+        if (look.pointerId !== null) return;
+        e.preventDefault();
+        zoneLook.setPointerCapture(e.pointerId);
+        look.pointerId = e.pointerId;
+        look.lastX = e.clientX;
+        look.travel = 0;
+    });
+
+    zoneLook.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== look.pointerId) return;
+        e.preventDefault();
+        const dx = e.clientX - look.lastX;
+        look.lastX = e.clientX;
+        // Reversing direction restarts the swipe so turns feel immediate
+        if (Math.sign(dx) !== Math.sign(look.travel)) look.travel = 0;
+        look.travel += dx;
+        if (Math.abs(look.travel) > LOOK_THRESHOLD) {
+            bearer.facing = look.travel > 0 ? 'right' : 'left';
+            look.travel = 0;
+        }
+    });
+
+    function releaseLook(e) {
+        if (e.pointerId !== look.pointerId) return;
+        look.pointerId = null;
+        look.travel = 0;
+    }
+    zoneLook.addEventListener('pointerup', releaseLook);
+    zoneLook.addEventListener('pointercancel', releaseLook);
+
+    // HUD buttons. pointerdown does the work so there is no 300ms tap
+    // delay, and preventDefault kills double-tap zoom / synthetic clicks.
+    function bindButton(el, onPress) {
+        el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            el.classList.add('pressed');
+            onPress();
+        });
+        const lift = () => el.classList.remove('pressed');
+        el.addEventListener('pointerup', lift);
+        el.addEventListener('pointercancel', lift);
+        el.addEventListener('pointerleave', lift);
+        el.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    // Toggle Light: open the lantern's shutter wide, or draw it back in.
+    bindButton(btnLantern, () => {
+        bearer.lanternWide = !bearer.lanternWide;
+        bearer.lanternTarget = bearer.lanternWide ? bearer.lanternWideRadius
+                                                  : bearer.lanternBaseRadius;
+        btnLantern.classList.toggle('on', bearer.lanternWide);
+    });
+
+    // Interact: call out to the nearest soul standing in your light, and
+    // they will say their piece again.
+    bindButton(btnGreet, greetNearest);
+
+    function greetNearest() {
+        const bx = bearer.x + bearer.width / 2;
+        let nearest = null, best = bearer.lanternRadius;
+        activeTravelers.concat(companions).forEach(o => {
+            const d = Math.abs(bx - (o.x + o.width / 2));
+            if (d < best) { best = d; nearest = o; }
+        });
+        if (nearest) nearest.textDisplayTimer = 180;
+    }
+
+    // Last line of defence against browser gestures on iOS Safari, which
+    // still fires these even with touch-action: none.
+    ['gesturestart', 'gesturechange', 'dblclick'].forEach(type => {
+        document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+    });
+
+    // --- 5b. VIEWPORT FITTING ---
+    // The canvas keeps a fixed 1024x576 backing store and is scaled by CSS
+    // to fit the screen. That is the 2D equivalent of capping a WebGL
+    // renderer's pixel ratio (renderer.setPixelRatio(Math.min(dpr, 2))):
+    // a phone at devicePixelRatio 3 never rasterises more than 1024x576
+    // pixels per frame, however large its display.
+    function fitCanvas() {
+        const container = document.getElementById('gameContainer');
+        const style = getComputedStyle(container);
+        const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const availW = container.clientWidth - padX - 8;
+        const instructions = document.querySelector('.instructions');
+        const chrome = TOUCH_MODE ? 0 : instructions.offsetHeight + 23;
+        const availH = container.clientHeight - padY - chrome - 8;
+
+        const scale = Math.min(availW / canvas.width, availH / canvas.height);
+        canvas.style.width = Math.floor(canvas.width * scale) + 'px';
+        canvas.style.height = Math.floor(canvas.height * scale) + 'px';
+    }
+
+    window.addEventListener('resize', fitCanvas);
+    window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 120));
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', fitCanvas);
+
+    // --- 6. CORE GAME LOGIC UPDATES ---
+    function updateGame() {
+        gameWorld.time++;
+
+        // The shutter opens and closes gently rather than snapping
+        bearer.lanternRadius += (bearer.lanternTarget - bearer.lanternRadius) * 0.08;
+
+        // Handle Movement Tracking — keyboard is full-tilt, the touch
+        // stick is analog, and either one alone can drive the walk.
+        let moveVector = 0;
+        if (keys.left) moveVector -= 1;
+        if (keys.right) moveVector += 1;
+        if (moveVector === 0) moveVector = stick.vector;
+
+        if (moveVector !== 0) {
+            bearer.x += bearer.speed * moveVector;
+            bearer.facing = moveVector > 0 ? 'right' : 'left';
+            bearer.currentState = 'walk';
+            bearer.animTimer++;
+            if (bearer.animTimer >= 10) {
+                bearer.walkFrame = (bearer.walkFrame === 0) ? 1 : 0;
+                bearer.animTimer = 0;
+            }
+        } else {
+            bearer.currentState = 'stand';
+            bearer.walkFrame = 0;
+            bearer.animTimer = 0;
+        }
+
+        // Boundary Clamp
+        if (bearer.x < 0) bearer.x = 0;
+
+        // Interactive Proximity Checking with Travelers
+        const bearerCenterX = bearer.x + bearer.width / 2;
+
+        for (let i = activeTravelers.length - 1; i >= 0; i--) {
+            const traveler = activeTravelers[i];
+            const travelerCenterX = traveler.x + traveler.width / 2;
+            const distance = Math.abs(bearerCenterX - travelerCenterX);
+
+            // Awakening: the traveler slips deep inside the lantern's glow
+            if (!traveler.isLit && distance < bearer.lanternRadius - 15) {
+                traveler.isLit = true;
+                traveler.textDisplayTimer = 180;
+                traveler.joinDelay = 130; // A pause of gratitude before rising
+                gameWorld.lanternsLit++;
+                spawnLightPoof(travelerCenterX, gameWorld.floorY - traveler.height / 2);
+            }
+
+            // City residents greet you but stay to celebrate
+            if (traveler.atHome && !traveler.greeted && distance < bearer.lanternRadius) {
+                traveler.greeted = true;
+                traveler.textDisplayTimer = 240;
+                gameWorld.lanternsLit++;
+                spawnLightPoof(travelerCenterX, gameWorld.floorY - traveler.height / 2);
+            }
+
+            // Their own lantern blooms open once lit
+            if (traveler.isLit) {
+                traveler.glowRadius += (110 - traveler.glowRadius) * 0.05;
+            }
+            if (traveler.textDisplayTimer > 0) traveler.textDisplayTimer--;
+
+            // After the pause, they rise and join the journey
+            if (traveler.isLit && !traveler.atHome) {
+                traveler.joinDelay--;
+                if (traveler.joinDelay <= 0) {
+                    companions.push({
+                        x: traveler.x,
+                        width: traveler.width,
+                        height: traveler.height,
+                        robeHue: traveler.robeHue,
+                        message: traveler.message,
+                        textDisplayTimer: traveler.textDisplayTimer,
+                        bobTimer: Math.random() * 60
+                    });
+                    activeTravelers.splice(i, 1);
+                }
+            }
+        }
+
+        // Companions trail behind the bearer in a gentle walking line
+        companions.forEach((c, i) => {
+            const targetX = bearer.x - (i + 1) * 78;
+            const diff = targetX - c.x;
+            if (Math.abs(diff) > 4) {
+                c.x += Math.sign(diff) * Math.min(Math.abs(diff) * 0.06 + 1.2, bearer.speed - 0.4);
+                c.bobTimer++;
+            }
+            if (c.textDisplayTimer > 0) c.textDisplayTimer--;
+        });
+
+        // Update Floating Spark Particles
+        lightParticles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= 0.015;
+        });
+        lightParticles = lightParticles.filter(p => p.alpha > 0);
+
+        // Drift the atmosphere
+        const fx = sceneMoods[gameWorld.currentScene].fx;
+        atmosphere.forEach(a => {
+            if (fx === 'fog') {
+                a.x += a.speed;
+                if (a.x - a.r > canvas.width) a.x = -a.r;
+            } else if (fx === 'wind') {
+                a.x -= a.speed;
+                if (a.x + a.len < 0) {
+                    a.x = canvas.width + Math.random() * 100;
+                    a.y = Math.random() * canvas.height;
+                }
+            } else if (fx === 'motes') {
+                a.phase += 0.02;
+                a.y -= 0.15;
+                if (a.y < -10) a.y = gameWorld.floorY;
+            }
+        });
+
+        // Free Stage Transition Logic
+        if (bearer.x > canvas.width - 40) {
+            if (gameWorld.currentScene < gameWorld.totalScenes) {
+                bearer.x = 10;
+                loadScene(gameWorld.currentScene + 1);
+            } else {
+                bearer.x = canvas.width - bearer.width;
+                bearer.currentState = 'stand';
+            }
+        }
+    }
+
+    // --- 7. PAINTED BACKDROP FALLBACKS (one per journey stage) ---
+    const backdropCache = {};
+
+    function getBackdrop(n) {
+        if (backdropCache[n]) return backdropCache[n];
+        const c = document.createElement('canvas');
+        c.width = canvas.width;
+        c.height = canvas.height;
+        const g = c.getContext('2d');
+        const W = c.width, H = c.height, floorY = gameWorld.floorY;
+
+        // Deterministic scatter so each stage paints the same way every visit
+        let seed = n * 4127 + 11;
+        const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+        const sky = g.createLinearGradient(0, 0, 0, H);
+        const groundTones = {};
+
+        switch (n) {
+            case 1: // Dark Forest: deep blue-violet, heavy trees
+                sky.addColorStop(0, '#0d0b1e');
+                sky.addColorStop(1, '#1c1636');
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                drawStars(g, rnd, 60, 0.5);
+                for (let i = 0; i < 14; i++) {
+                    const tx = rnd() * W, th = 180 + rnd() * 220, tw = 26 + rnd() * 30;
+                    g.fillStyle = 'rgba(10, 8, 24, 0.9)';
+                    g.fillRect(tx - 4, floorY - th * 0.4, 8, th * 0.4);
+                    for (let l = 0; l < 3; l++) {
+                        const ly = floorY - th * 0.35 - l * th * 0.22;
+                        g.beginPath();
+                        g.moveTo(tx - tw + l * 5, ly);
+                        g.lineTo(tx + tw - l * 5, ly);
+                        g.lineTo(tx, ly - th * 0.3);
+                        g.closePath();
+                        g.fill();
+                    }
+                }
+                groundTones.base = '#0f0c20'; groundTones.path = '#1a1530';
+                break;
+
+            case 2: // Misty Valley: layered soft hills
+                sky.addColorStop(0, '#12102a');
+                sky.addColorStop(1, '#2a2450');
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                drawStars(g, rnd, 40, 0.4);
+                ['#1b1738', '#221d44', '#2a2452'].forEach((tone, layer) => {
+                    g.fillStyle = tone;
+                    g.beginPath();
+                    g.moveTo(0, floorY);
+                    for (let x = 0; x <= W; x += 8) {
+                        const y = floorY - 60 - layer * 45
+                            - Math.sin(x * 0.004 + layer * 2) * 55
+                            - Math.sin(x * 0.011 + layer) * 22;
+                        g.lineTo(x, y);
+                    }
+                    g.lineTo(W, floorY);
+                    g.closePath();
+                    g.fill();
+                });
+                groundTones.base = '#171330'; groundTones.path = '#241e42';
+                break;
+
+            case 3: // Mountain Pass: jagged peaks, snow caps
+                sky.addColorStop(0, '#0e0c22');
+                sky.addColorStop(1, '#221c44');
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                drawStars(g, rnd, 70, 0.55);
+                [['#141030', 200], ['#1c1740', 120]].forEach(([tone, base]) => {
+                    g.fillStyle = tone;
+                    g.beginPath();
+                    g.moveTo(0, floorY);
+                    let x = 0;
+                    while (x < W) {
+                        const peakW = 90 + rnd() * 160;
+                        const peakH = base + rnd() * 160;
+                        const px = x + peakW / 2;
+                        g.lineTo(px, floorY - peakH);
+                        if (tone === '#1c1740') {
+                            g.save();
+                            g.fillStyle = '#4a4370';
+                            g.beginPath();
+                            g.moveTo(px, floorY - peakH);
+                            g.lineTo(px - 14, floorY - peakH + 26);
+                            g.lineTo(px + 14, floorY - peakH + 26);
+                            g.closePath();
+                            g.fill();
+                            g.restore();
+                            g.fillStyle = tone;
+                        }
+                        x += peakW;
+                        g.lineTo(x, floorY - 30 - rnd() * 40);
+                    }
+                    g.lineTo(W, floorY);
+                    g.closePath();
+                    g.fill();
+                });
+                groundTones.base = '#120e28'; groundTones.path = '#1e1838';
+                break;
+
+            case 4: // Ancient Ruins: broken columns and fallen stone
+                sky.addColorStop(0, '#120e26');
+                sky.addColorStop(1, '#241d45');
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                drawStars(g, rnd, 50, 0.5);
+                for (let i = 0; i < 6; i++) {
+                    const cx = 60 + i * 170 + rnd() * 50;
+                    const ch = 120 + rnd() * 160;
+                    g.fillStyle = '#2a2350';
+                    g.fillRect(cx, floorY - ch, 34, ch);
+                    g.fillRect(cx - 8, floorY - ch, 50, 14); // capital
+                    g.fillStyle = '#1e1940';
+                    g.fillRect(cx - 10, floorY - 12, 54, 12); // base
+                }
+                g.fillStyle = '#231d48';
+                g.fillRect(240, floorY - 26, 150, 20); // fallen beam
+                groundTones.base = '#141024'; groundTones.path = '#221b3e';
+                break;
+
+            case 5: // Approaching Dawn: indigo melting into orange
+                sky.addColorStop(0, '#1a1440');
+                sky.addColorStop(0.5, '#3a2a5e');
+                sky.addColorStop(0.82, '#8a4e52');
+                sky.addColorStop(1, '#d08050');
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                drawStars(g, rnd, 25, 0.3);
+                const dawn = g.createRadialGradient(W * 0.72, floorY, 10, W * 0.72, floorY, 320);
+                dawn.addColorStop(0, 'rgba(255, 190, 110, 0.5)');
+                dawn.addColorStop(1, 'rgba(255, 190, 110, 0)');
+                g.fillStyle = dawn;
+                g.fillRect(0, 0, W, H);
+                g.fillStyle = '#241b42';
+                g.beginPath();
+                g.moveTo(0, floorY);
+                for (let x = 0; x <= W; x += 10) {
+                    g.lineTo(x, floorY - 40 - Math.sin(x * 0.006) * 30);
+                }
+                g.lineTo(W, floorY);
+                g.closePath();
+                g.fill();
+                groundTones.base = '#221a3c'; groundTones.path = '#3c2c50';
+                break;
+
+            case 6: // City of Light: warm glow, towers, welcoming gate
+                sky.addColorStop(0, '#33255c');
+                sky.addColorStop(0.6, '#6b4a8e');
+                sky.addColorStop(1, '#e8a35c');
+                g.fillStyle = sky; g.fillRect(0, 0, W, H);
+                const halo = g.createRadialGradient(W * 0.6, floorY - 120, 40, W * 0.6, floorY - 120, 500);
+                halo.addColorStop(0, 'rgba(255, 214, 130, 0.45)');
+                halo.addColorStop(1, 'rgba(255, 214, 130, 0)');
+                g.fillStyle = halo;
+                g.fillRect(0, 0, W, H);
+                for (let i = 0; i < 9; i++) {
+                    const tx = 30 + i * 115 + rnd() * 40;
+                    const th = 130 + rnd() * 200;
+                    const tw = 54 + rnd() * 30;
+                    g.fillStyle = '#3a2b63';
+                    g.fillRect(tx, floorY - th, tw, th);
+                    g.beginPath(); // rooftop
+                    g.moveTo(tx - 6, floorY - th);
+                    g.lineTo(tx + tw + 6, floorY - th);
+                    g.lineTo(tx + tw / 2, floorY - th - 34);
+                    g.closePath();
+                    g.fill();
+                    g.fillStyle = '#ffd56b'; // lit windows
+                    for (let wy = floorY - th + 22; wy < floorY - 20; wy += 34) {
+                        for (let wx = tx + 10; wx < tx + tw - 8; wx += 20) {
+                            if (rnd() > 0.35) g.fillRect(wx, wy, 7, 11);
+                        }
+                    }
+                }
+                // The open gate at the road's end
+                g.fillStyle = '#2c2154';
+                g.fillRect(W - 120, floorY - 220, 30, 220);
+                g.fillRect(W - 30, floorY - 220, 30, 220);
+                g.beginPath();
+                g.arc(W - 60, floorY - 210, 60, Math.PI, 0);
+                g.fill();
+                g.fillStyle = 'rgba(255, 220, 140, 0.75)';
+                g.fillRect(W - 90, floorY - 200, 60, 200); // light pouring through
+                groundTones.base = '#3a2a58'; groundTones.path = '#5c4370';
+                break;
+        }
+
+        // Shared ground strip with a soft worn path
+        g.fillStyle = groundTones.base;
+        g.fillRect(0, floorY, W, H - floorY);
+        g.fillStyle = groundTones.path;
+        g.beginPath();
+        g.ellipse(W / 2, floorY + 40, W * 0.55, 26, 0, 0, Math.PI * 2);
+        g.fill();
+
+        backdropCache[n] = c;
+        return c;
+    }
+
+    function drawStars(g, rnd, count, brightness) {
+        for (let i = 0; i < count; i++) {
+            g.fillStyle = `rgba(255, 250, 230, ${rnd() * brightness})`;
+            const s = rnd() > 0.9 ? 2 : 1;
+            g.fillRect(rnd() * canvas.width, rnd() * gameWorld.floorY * 0.75, s, s);
+        }
+    }
+
+    // --- 8. PAINTED CHARACTER FALLBACKS ---
+    function drawBearerVector(x, y, w, h, facing, walking, frame) {
+        const cx = x + w / 2;
+        const dir = facing === 'right' ? 1 : -1;
+        const bob = walking && frame === 1 ? 3 : 0;
+
+        ctx.save();
+        // Robe
+        ctx.fillStyle = '#5a4a8a';
+        ctx.beginPath();
+        ctx.moveTo(cx - w * 0.32, y + h);
+        ctx.quadraticCurveTo(cx - w * 0.38, y + h * 0.4, cx, y + h * 0.22 + bob);
+        ctx.quadraticCurveTo(cx + w * 0.38, y + h * 0.4, cx + w * 0.32, y + h);
+        ctx.closePath();
+        ctx.fill();
+        // Walking legs peeking from the robe hem
+        if (walking) {
+            ctx.fillStyle = '#3f3468';
+            ctx.fillRect(cx - 12 + (frame ? 6 : -4), y + h - 16, 10, 16);
+            ctx.fillRect(cx + 2 + (frame ? -4 : 6), y + h - 16, 10, 16);
+        }
+        // Hood and face
+        ctx.fillStyle = '#6b5a9e';
+        ctx.beginPath();
+        ctx.arc(cx, y + h * 0.17 + bob, w * 0.24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f0dcb8';
+        ctx.beginPath();
+        ctx.arc(cx + dir * 4, y + h * 0.18 + bob, w * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        // Lantern held out ahead
+        const lx = cx + dir * w * 0.5;
+        const ly = y + h * 0.52 + bob;
+        ctx.strokeStyle = '#8b7eb3';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + dir * w * 0.2, y + h * 0.42 + bob);
+        ctx.lineTo(lx, ly - 14);
+        ctx.stroke();
+        ctx.fillStyle = '#3a2e5d';
+        ctx.fillRect(lx - 8, ly - 12, 16, 22);
+        const flicker = 4 + Math.sin(gameWorld.time * 0.15) * 1.5;
+        ctx.fillStyle = '#ffdf8e';
+        ctx.beginPath();
+        ctx.arc(lx, ly, flicker, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawTravelerVector(x, y, w, h, lit, robeHue, bobTimer) {
+        const cx = x + w / 2;
+        ctx.save();
+        if (!lit) {
+            // A weary figure huddled small in the dark
+            ctx.fillStyle = '#1e1a35';
+            ctx.beginPath();
+            ctx.ellipse(cx, y + h - h * 0.24, w * 0.42, h * 0.26, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#28224a';
+            ctx.beginPath();
+            ctx.arc(cx - w * 0.12, y + h - h * 0.46, w * 0.18, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            const bob = bobTimer !== undefined ? Math.sin(bobTimer * 0.25) * 2 : 0;
+            // Standing tall, their own lantern lit
+            ctx.fillStyle = `hsl(${robeHue}, 30%, 38%)`;
+            ctx.beginPath();
+            ctx.moveTo(cx - w * 0.3, y + h);
+            ctx.quadraticCurveTo(cx - w * 0.34, y + h * 0.42, cx, y + h * 0.24 + bob);
+            ctx.quadraticCurveTo(cx + w * 0.34, y + h * 0.42, cx + w * 0.3, y + h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#f0dcb8';
+            ctx.beginPath();
+            ctx.arc(cx, y + h * 0.16 + bob, w * 0.17, 0, Math.PI * 2);
+            ctx.fill();
+            // Their small lantern, held close
+            const lx = cx + w * 0.42;
+            const ly = y + h * 0.58 + bob;
+            ctx.fillStyle = '#3a2e5d';
+            ctx.fillRect(lx - 6, ly - 9, 12, 17);
+            ctx.fillStyle = '#ffdf8e';
+            ctx.beginPath();
+            ctx.arc(lx, ly, 3.5 + Math.sin(gameWorld.time * 0.12 + x) * 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // --- 9. DRAWING ENGINE AND BLENDING EFFECTS ---
+    function renderGame() {
+        const floorY = gameWorld.floorY;
+        const mood = sceneMoods[gameWorld.currentScene];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Scene Background Layer (your art, or the painted fallback)
+        if (imageReady(backgroundLayer)) {
+            ctx.drawImage(backgroundLayer, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.drawImage(getBackdrop(gameWorld.currentScene), 0, 0);
+        }
+
+        // 2. Draw Travelers
+        activeTravelers.forEach(t => {
+            const ty = floorY - t.height;
+            const key = t.isLit ? 'traveler_glowing' : 'traveler_shadow';
+            if (imageReady(images[key])) {
+                ctx.drawImage(images[key], t.x, ty, t.width, t.height);
+            } else {
+                drawTravelerVector(t.x, ty, t.width, t.height, t.isLit, t.robeHue);
+            }
+        });
+
+        // 3. Draw Companions walking the road with you
+        companions.forEach(c => {
+            const cy = floorY - c.height;
+            if (imageReady(images['traveler_glowing'])) {
+                ctx.drawImage(images['traveler_glowing'], c.x, cy, c.width, c.height);
+            } else {
+                drawTravelerVector(c.x, cy, c.width, c.height, true, c.robeHue, c.bobTimer);
+            }
+        });
+
+        // 4. Draw Player
+        const bearerKey = bearer.currentState === 'walk'
+            ? 'bearer_walk_' + bearer.facing + '_' + bearer.walkFrame
+            : 'bearer_stand_' + bearer.facing;
+        const by = floorY - bearer.height;
+        if (imageReady(images[bearerKey])) {
+            ctx.drawImage(images[bearerKey], bearer.x, by, bearer.width, bearer.height);
+        } else {
+            drawBearerVector(bearer.x, by, bearer.width, bearer.height,
+                bearer.facing, bearer.currentState === 'walk', bearer.walkFrame);
+        }
+
+        // --- 5. DYNAMIC LIGHT MASKING LAYER ---
+        // Every lit lantern — yours, your companions', each awakened
+        // traveler's — carves its own hole in the midnight blanket.
+        ctx.save();
+        ctx.fillStyle = `rgba(8, 6, 15, ${mood.darkness})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = 'destination-out';
+
+        const lightSources = [];
+        const flickerR = bearer.lanternRadius + Math.sin(gameWorld.time * 0.1) * 6;
+        lightSources.push({
+            x: bearer.x + bearer.width / 2,
+            y: floorY - bearer.height / 2,
+            r: flickerR
+        });
+        companions.forEach(c => lightSources.push({
+            x: c.x + c.width / 2,
+            y: floorY - c.height / 2,
+            r: 120 + Math.sin(gameWorld.time * 0.1 + c.x) * 4
+        }));
+        activeTravelers.forEach(t => {
+            if (t.glowRadius > 2) lightSources.push({
+                x: t.x + t.width / 2,
+                y: floorY - t.height / 2,
+                r: t.glowRadius
+            });
+        });
+
+        lightSources.forEach(s => {
+            const hole = ctx.createRadialGradient(s.x, s.y, s.r * 0.1, s.x, s.y, s.r);
+            hole.addColorStop(0, 'rgba(0, 0, 0, 1.0)');
+            hole.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+            hole.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
+            ctx.fillStyle = hole;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.restore();
+
+        // 6. Warm amber wash inside each pool of light
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        lightSources.forEach(s => {
+            const warm = ctx.createRadialGradient(s.x, s.y, 4, s.x, s.y, s.r * 0.85);
+            warm.addColorStop(0, 'rgba(255, 185, 90, 0.13)');
+            warm.addColorStop(1, 'rgba(255, 185, 90, 0)');
+            ctx.fillStyle = warm;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r * 0.85, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.restore();
+
+        // 7. Atmosphere drifting over the light
+        if (mood.fx === 'fog') {
+            atmosphere.forEach(a => {
+                const fog = ctx.createRadialGradient(a.x, a.y, 4, a.x, a.y, a.r);
+                fog.addColorStop(0, `rgba(170, 170, 210, ${a.alpha})`);
+                fog.addColorStop(1, 'rgba(170, 170, 210, 0)');
+                ctx.fillStyle = fog;
+                ctx.beginPath();
+                ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        } else if (mood.fx === 'wind') {
+            ctx.strokeStyle = 'rgba(180, 180, 220, 0.15)';
+            ctx.lineWidth = 1.5;
+            atmosphere.forEach(a => {
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(a.x + a.len, a.y - 6);
+                ctx.stroke();
+            });
+        } else if (mood.fx === 'motes') {
+            atmosphere.forEach(a => {
+                ctx.fillStyle = `rgba(255, 215, 130, ${0.25 + Math.sin(a.phase) * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(a.x + Math.sin(a.phase) * 10, a.y, a.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 8. Floating Spark Particles over everything
+        lightParticles.forEach(p => {
+            ctx.fillStyle = p.color + p.alpha + ")";
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // 9. Dialogue text above lit heads, centered per traveler.
+        // A unique height offset staggers nearby text onto different
+        // "levels" so close-together messages never overlap.
+        ctx.font = '16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffeba3';
+        activeTravelers.forEach(t => {
+            if (t.isLit && t.textDisplayTimer > 0) {
+                const heightOffset = 20 + ((t.x % 3) * 25);
+                ctx.fillText(t.message, t.x + t.width / 2, floorY - t.height - heightOffset);
+            }
+        });
+        companions.forEach((c, i) => {
+            if (c.textDisplayTimer > 0) {
+                // Companions drift, so stagger by their marching slot instead
+                const heightOffset = 20 + ((i % 3) * 25);
+                ctx.fillText(c.message, c.x + c.width / 2, floorY - c.height - heightOffset);
+            }
+        });
+
+        // 10. UI Header Details
+        ctx.fillStyle = 'rgba(139, 126, 179, 0.85)';
+        ctx.font = '16px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText("STAGE " + gameWorld.currentScene + " / 6 — " + mood.name, 30, 40);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255, 213, 107, 0.85)';
+        ctx.fillText("LANTERNS LIT: " + gameWorld.lanternsLit, canvas.width - 30, 40);
+
+        if (gameWorld.currentScene === 6) {
+            const allGreeted = activeTravelers.every(t => t.greeted);
+            ctx.fillStyle = '#ffd56b';
+            ctx.textAlign = 'center';
+            ctx.font = '22px monospace';
+            ctx.fillText(allGreeted
+                ? "THE LIGHT SHINES IN THE DARKNESS"
+                : "THE JOURNEY IS FULFILLED", canvas.width / 2, 84);
+            if (allGreeted) {
+                ctx.font = '15px monospace';
+                ctx.fillStyle = 'rgba(255, 235, 163, 0.8)';
+                ctx.fillText("...and the darkness has not overcome it.", canvas.width / 2, 112);
+            }
+        }
+    }
+
+    // --- 10. RUNNER LOOPS ---
+    function gameLoop() {
+        updateGame();
+        renderGame();
+        requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('load', () => {
+        fitCanvas();
+        loadScene(1);
+        gameLoop();
+    });
+</script>
+
+
+<script>
+(function () {
+  var overlay = document.getElementById('sq-open');
+  var cont = document.getElementById('sq-continue');
+  var btn = document.getElementById('sq-play');
+  var stage = overlay && overlay.querySelector('.sq-stage');
+  if (!overlay) return;
+  function goHowto(e) {
+    if (overlay.classList.contains('is-howto') || overlay.classList.contains('is-off')) return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-howto');
+  }
+  function start(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-off');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (typeof gameState !== 'undefined' && gameState === 'TITLE') {
+      gameState = 'PLAYING';
+    }
+    document.dispatchEvent(new CustomEvent('sq-play'));
+  }
+  if (cont) cont.addEventListener('click', goHowto);
+  if (stage) stage.addEventListener('click', goHowto);
+  if (btn) btn.addEventListener('click', start);
+  window.addEventListener('keydown', function (e) {
+    if (overlay.classList.contains('is-off')) return;
+    if (e.code === 'Enter' || e.code === 'Space') {
+      if (overlay.classList.contains('is-howto')) start(e);
+      else goHowto(e);
+    }
+  }, true);
+})();
+</script>
+
+</body>
+</html>
