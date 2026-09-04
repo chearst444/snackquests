@@ -170,6 +170,30 @@ a.sq-studio {
   flex: none;
 }
 
+/* Narrow phones: sit the title art higher so the dark cocoa band above
+   the card is only safe-area plus the studio chip, not a tall empty gap. */
+@media (max-width: 640px) {
+  #sq-open {
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: max(56px, calc(env(safe-area-inset-top) + 48px));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
+  }
+  #sq-open .sq-studio {
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+  }
+  #sq-open .sq-stage,
+  #sq-open .sq-howto {
+    max-height: calc(100dvh - 64px);
+  }
+  #sq-open .sq-art svg {
+    max-height: calc(100dvh - 64px);
+  }
+}
+
 /* ------------------------------- App shell ------------------------------- */
 #app {
   min-height: 100dvh;
@@ -214,32 +238,19 @@ a.sq-studio {
   padding: 4px 12px;
 }
 
-.heart-meter {
+.trail-progress {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin: 0;
   font-size: 12px;
   font-weight: 800;
-  color: var(--jam);
+  color: var(--cookie-dark);
+  letter-spacing: 0.02em;
 }
-.heart-meter svg {
-  width: 34px;
-  height: 30px;
-  display: block;
-  overflow: visible;
-}
-.heart-fill {
-  fill: var(--jam);
-  transition: y 500ms ease, height 500ms ease;
-}
-.heart-outline {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 3;
-  stroke-linejoin: round;
-}
-.heart-meter.is-lit svg {
-  filter: drop-shadow(0 0 8px rgba(214, 69, 69, 0.7));
+.trail-progress__sep {
+  opacity: 0.4;
+  font-weight: 700;
 }
 
 .stage-info { text-align: center; min-height: 44px; }

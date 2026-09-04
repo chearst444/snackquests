@@ -71,8 +71,8 @@
       eyebrow: "The last fork",
       heading: "The inn",
       body: "The innkeeper waits at the door. The traveler needs a bed, a meal, and a promise to return.",
-      help: { flavor: "Pay for the room. Promise to settle the rest.", glow: "You made a place for them. The heart fills." },
-      share: { flavor: "Give the coins you still carry. Stay until morning.", glow: "You stayed. The heart fills." },
+      help: { flavor: "Pay for the room. Promise to settle the rest.", glow: "You made a place for them. The path glows a little warmer." },
+      share: { flavor: "Give the coins you still carry. Stay until morning.", glow: "You stayed. The path glows a little warmer." },
       wait: { flavor: "Leave them at the step and walk on.", redirect: "The door is open. They still need you." }
     }
   ];
@@ -84,8 +84,9 @@
   const stageSubtitle = document.getElementById("stageSubtitle");
   const stageDots = document.getElementById("stageDots");
   const toastEl = document.getElementById("toast");
-  const heartMeter = document.getElementById("heartMeter");
-  const heartFill = document.getElementById("heartFill");
+  const trailProgress = document.getElementById("trailProgress");
+  const progressCrumbs = document.getElementById("progressCrumbs");
+  const progressStages = document.getElementById("progressStages");
   const app = document.getElementById("app");
 
   const forkOverlay = document.getElementById("forkOverlay");
@@ -93,7 +94,8 @@
   const closeOverlay = document.getElementById("closeOverlay");
 
   let current = 0;
-  let kindness = 0;
+  let crumbsCollected = 0;
+  let stagesWalked = 0;
   let toastTimer = 0;
   let inputLock = false;
 
@@ -162,20 +164,14 @@
     }, 2400);
   }
 
-  function setHeart() {
-    const max = 2;
-    const ratio = Math.min(kindness, max) / max;
-    const height = 56 * ratio;
-    const y = 56 - height;
-    heartFill.setAttribute("y", String(y));
-    heartFill.setAttribute("height", String(height));
-    const label = kindness <= 0
-      ? "Good Samaritan heart, empty"
-      : kindness >= max
-        ? "Good Samaritan heart, full"
-        : "Good Samaritan heart, filling";
-    heartMeter.setAttribute("aria-label", label);
-    heartMeter.classList.toggle("is-lit", kindness >= max);
+  function updateProgress() {
+    const crumbWord = crumbsCollected === 1 ? "crumb" : "crumbs";
+    progressCrumbs.textContent = crumbsCollected + " " + crumbWord;
+    progressStages.textContent = stagesWalked + " walked";
+    trailProgress.setAttribute(
+      "aria-label",
+      crumbsCollected + " " + crumbWord + " collected, " + stagesWalked + " of " + STAGES.length + " stages walked"
+    );
   }
 
   function buildDots() {
@@ -202,9 +198,9 @@
   }
 
   function advance() {
+    stagesWalked = Math.min(stagesWalked + 1, STAGES.length);
+    updateProgress();
     if (current >= STAGES.length - 1) {
-      kindness = Math.max(kindness, 2);
-      setHeart();
       app.classList.add("is-glowing");
       closeOverlay.hidden = false;
       return;
@@ -275,6 +271,8 @@
         inputLock = true;
         loaf.style.left = stage.crumbs[i].x + "%";
         loaf.style.top = stage.crumbs[i].y + "%";
+        crumbsCollected += 1;
+        updateProgress();
         next += 1;
         lightNext();
         const done = next >= crumbs.length;
@@ -438,8 +436,6 @@
           return;
         }
         inputLock = true;
-        kindness += 1;
-        setHeart();
         forkOverlay.hidden = true;
         document.getElementById("glowTitle").textContent = word === "Help" ? "A soft glow" : "A shared glow";
         document.getElementById("glowBody").textContent = data.glow;
@@ -463,8 +459,9 @@
 
   document.getElementById("restartBtn").addEventListener("click", function () {
     closeOverlay.hidden = true;
-    kindness = 0;
-    setHeart();
+    crumbsCollected = 0;
+    stagesWalked = 0;
+    updateProgress();
     app.classList.remove("is-glowing");
     startStage(0);
   });
@@ -498,7 +495,7 @@
     }, true);
   }
 
-  setHeart();
+  updateProgress();
   buildDots();
   bootOpening();
 })();

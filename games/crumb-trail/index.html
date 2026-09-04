@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#E8A838">
   <title>Crumb Trail</title>
-  <meta name="description" content="Follow the crumb path. Choose Help, Share, or Wait. A Daily Bread parable walk with a Good Samaritan heart. No ads.">
+  <meta name="description" content="Follow the crumb path. Choose Help, Share, or Wait. A Daily Bread parable walk. No ads.">
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,7 +70,7 @@
       <div class="sq-howto-card">
         <h2>How to play</h2>
         <p>Follow the crumb path. A soft glow marks the next true crumb. A wrong crumb only gives a gentle redirect. Never a scolding.</p>
-        <p>When the road forks, choose a word: Help, Share, or Wait. Kindness fills the Good Samaritan heart.</p>
+        <p>When the road forks, choose a word: Help, Share, or Wait. Glow is an invitation, not a prize.</p>
         <p>No ads. No rush. A short walk you can finish in a snack sized moment.</p>
         <button type="button" class="sq-play" id="sq-play">Play</button>
       </div>
@@ -81,18 +81,11 @@
     <header class="hud">
       <div class="hud-row">
         <p class="track-tag">Daily Bread</p>
-        <div class="heart-meter" id="heartMeter" aria-label="Good Samaritan heart, empty">
-          <svg viewBox="0 0 64 56" aria-hidden="true" focusable="false">
-            <defs>
-              <clipPath id="heartClip">
-                <path d="M32 52 L8 28 C2 22 2 12 10 8 C18 4 26 8 32 16 C38 8 46 4 54 8 C62 12 62 22 56 28 Z"/>
-              </clipPath>
-            </defs>
-            <rect id="heartFill" class="heart-fill" x="0" y="56" width="64" height="56" clip-path="url(#heartClip)"/>
-            <path class="heart-outline" d="M32 52 L8 28 C2 22 2 12 10 8 C18 4 26 8 32 16 C38 8 46 4 54 8 C62 12 62 22 56 28 Z"/>
-          </svg>
-          <span>Good Samaritan</span>
-        </div>
+        <p class="trail-progress" id="trailProgress" aria-label="0 crumbs collected, 0 of 6 stages walked">
+          <span id="progressCrumbs">0 crumbs</span>
+          <span class="trail-progress__sep" aria-hidden="true">/</span>
+          <span id="progressStages">0 walked</span>
+        </p>
       </div>
       <div class="stage-info">
         <h1 class="stage-info__title" id="stageTitle">Crumb Trail</h1>
