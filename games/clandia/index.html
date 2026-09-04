@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C Always Light Landia</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>" />
+  <script type="module" crossorigin src="./assets/index-DTFBQzWb.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CCuvlsLn.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- ===================== HUD (always on screen) ===================== -->
+  <div id="hud">
+    <div id="game-title"><span class="t-star">✦</span> C ALWAYS LIGHT LANDIA <span class="t-star">✦</span></div>
+
+    <div id="clock"><span id="clock-icon">☀️</span> <span id="clock-label">Day</span></div>
+
+    <!-- Architect's Field Guide (top-right) -->
+    <div id="architect-panel">
+      <div class="arch-head">📐 Architect's Field Guide</div>
+      <div id="arch-title">Grass</div>
+      <div id="arch-fact">Select a block to learn about it!</div>
+    </div>
+
+    <div id="quest-banner" class="hidden"></div>
+    <div id="toasts"></div>
+
+    <div id="crosshair"></div>
+    <div id="water-tint" class="hidden"></div>
+
+    <!-- Rotating construction tips (only while holding the Building Hammer) -->
+    <div id="tip-bar" class="hidden"></div>
+
+    <div id="controls-hint">Arrow keys move · WASD look · Space jump · F fly · B build · V break · E inventory · C touch · H help</div>
+    <div id="seed-chip" class="hidden"></div>
+    <div id="dye-chip" class="hidden"></div>
+
+    <!-- Biome name shown above the mini-map (bottom-right) -->
+    <div id="mini-map-label"></div>
+
+    <div id="tool-display"></div>
+  </div>
+
+  <!-- Hotbar lives OUTSIDE #hud so it stays clickable above the inventory
+       overlay — otherwise you can't drop catalog blocks onto a slot. -->
+  <div id="hotbar"></div>
+
+  <!-- ===================== UI buttons + Help (outside #hud so they sit above the pause overlay) ===================== -->
+  <div id="ui-buttons">
+    <button id="btn-respawn" class="ui-btn">🏠 Respawn <span class="key-hint">R</span></button>
+    <button id="btn-fly" class="ui-btn">🕊️ Fly: Off <span class="key-hint">F</span></button>
+    <button id="btn-help" class="ui-btn">❓ Help <span class="key-hint">H</span></button>
+  </div>
+
+  <div id="help-overlay" class="hidden">
+    <div class="help-card">
+      <h2>❓ Help &amp; Controls</h2>
+      <div class="help-grid">
+        <div><kbd>← ↑ ↓ →</kbd></div><div>Walk around</div>
+        <div><kbd>W A S D</kbd></div><div>Look around (W up · S down · A left · D right)</div>
+        <div><kbd>Space</kbd></div><div>Jump · swim up · fly up</div>
+        <div><kbd>C</kbd></div><div>Touch mode — tap the world to use your tool</div>
+        <div><kbd>Shift</kbd></div><div>Swim down · fly down</div>
+        <div><kbd>B</kbd></div><div>Build — place a block</div>
+        <div><kbd>V</kbd></div><div>Break a block</div>
+        <div><kbd>E</kbd></div><div>Inventory &amp; crafting</div>
+        <div><kbd>1 – 0</kbd></div><div>Pick a hotbar slot</div>
+        <div><kbd>F</kbd></div><div>Toggle Fly Mode</div>
+        <div><kbd>R</kbd></div><div>Respawn back at the meadow</div>
+        <div><kbd>H</kbd></div><div>Show / hide this help</div>
+        <div><kbd>Esc</kbd></div><div>Pause</div>
+      </div>
+      <p class="help-note">The buttons on the left work while paused — the keys work any time!</p>
+      <button id="help-close">✔ Got it!</button>
+    </div>
+  </div>
+
+  <!-- ===================== Inventory + Crafting (press E) ===================== -->
+  <div id="inventory" class="hidden">
+    <div class="inv-panel">
+      <h2>🎒 Block Catalog</h2>
+      <p class="inv-hint">Click a block, then click a hotbar slot below — or a crafting square! (Press <b>E</b> to close)</p>
+      <div id="catalog"></div>
+
+      <h3>🧶 Texture Blocks <span class="sub">(real seamless photo textures!)</span></h3>
+      <div id="texture-catalog"></div>
+
+      <h3>🌼 Flower Dyes <span class="sub">(select one, then press V on a white sheep!)</span></h3>
+      <div id="dye-catalog"></div>
+
+      <h3>🎵 Harmony Music Blocks <span class="sub">(place them to build chords!)</span></h3>
+      <div id="music-catalog"></div>
+
+      <div id="craft-area">
+        <h3>🔧 Putting Things Together</h3>
+        <div class="craft-row">
+          <div id="craft-grid">
+            <div class="craft-cell" data-cell="0"></div>
+            <div class="craft-cell" data-cell="1"></div>
+            <div class="craft-cell" data-cell="2"></div>
+            <div class="craft-cell" data-cell="3"></div>
+          </div>
+          <div class="craft-arrow">➜</div>
+          <div id="craft-result" class="craft-cell result"></div>
+          <button id="craft-clear">Clear</button>
+        </div>
+        <p id="craft-msg" class="inv-hint">Try: Sand + Glowstone &nbsp;·&nbsp; Stone + Stone &nbsp;·&nbsp; just an Oak Log!</p>
+      </div>
+
+      <div id="held-chip" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- ===================== Pixel-Art Canvas editor ===================== -->
+  <div id="pixel-editor" class="hidden">
+    <div class="pixel-panel">
+      <h2>🎨 Pixel Canvas</h2>
+      <p class="inv-hint">Click squares to paint! Your art appears on the block when you're done.</p>
+      <div class="pixel-work">
+        <div id="pixel-grid"></div>
+        <div id="pixel-palette"></div>
+      </div>
+      <div class="pixel-buttons">
+        <button id="pixel-done">✔ Done</button>
+        <button id="pixel-clear">Clear</button>
+        <button id="pixel-break">🗑 Break Block</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Popup cards (questions, seeds) ===================== -->
+  <div id="popup" class="hidden">
+    <div class="popup-card">
+      <div id="popup-icon">❓</div>
+      <h2 id="popup-title"></h2>
+      <div id="popup-body"></div>
+      <div id="popup-buttons"></div>
+    </div>
+  </div>
+
+  <!-- ===================== Start / pause overlay ===================== -->
+  <div id="overlay">
+    <div class="overlay-inner">
+      <h1 class="big-title">C ALWAYS LIGHT LANDIA</h1>
+      <p class="tagline">🌸 Build · Dig · Discover · Make Music 🎵</p>
+      <div class="controls-card">
+        <div><b>Arrow keys</b> walk &nbsp;·&nbsp; <b>WASD</b> look &nbsp;·&nbsp; <b>Space</b> jump / swim up</div>
+        <div><b>B</b> build / place &nbsp;·&nbsp; <b>V</b> break &nbsp;·&nbsp; <b>E</b> inventory &amp; crafting</div>
+        <div>Visit <b>Harmony Valley</b> to play music, dye sheep, paint canvas blocks &amp; solve puzzles!</div>
+      </div>
+      <button id="start-btn">▶ CLICK TO PLAY</button>
+    </div>
+  </div>
+
+</body>
+</html>

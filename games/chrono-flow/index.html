@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Chrono-Flow</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- TITLE SCREEN -->
+    <section id="screen-title" class="screen active">
+      <div class="title-wrap">
+        <h1 class="logo">Chrono<span>·</span>Flow</h1>
+        <p class="tagline">Trace the network before the clock runs out.</p>
+        <div class="title-actions">
+          <button class="btn btn-primary" id="btn-play">Play</button>
+          <button class="btn btn-ghost" id="btn-levels">Level Select</button>
+          <button class="btn btn-ghost" id="btn-howto">How to Play</button>
+        </div>
+        <p class="hint">Drag from the start node through every data node, then reach the target &mdash; all before time runs out.</p>
+      </div>
+    </section>
+
+    <!-- LEVEL SELECT -->
+    <section id="screen-levels" class="screen">
+      <header class="topbar">
+        <button class="btn btn-icon" id="btn-levels-back" aria-label="Back">&larr;</button>
+        <h2>Select Level</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="tiers" id="tier-list"></div>
+    </section>
+
+    <!-- GAMEPLAY -->
+    <section id="screen-game" class="screen">
+      <header class="hud">
+        <button class="btn btn-icon" id="btn-game-back" aria-label="Back">&larr;</button>
+        <div class="hud-mid">
+          <div class="hud-level" id="hud-level">Level 1</div>
+          <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+          <div class="hud-status" id="hud-status"></div>
+        </div>
+        <button class="btn btn-icon" id="btn-howto-game" aria-label="How to play">?</button>
+        <button class="btn btn-icon" id="btn-reset" aria-label="Reset">&#8635;</button>
+      </header>
+      <div class="canvas-wrap">
+        <canvas id="grid-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- WIN / LOSE MODAL -->
+    <div id="modal-overlay" class="modal-overlay">
+      <div class="modal">
+        <h2 id="modal-title">Level Complete</h2>
+        <div class="stars" id="modal-stars">
+          <span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span>
+        </div>
+        <p id="modal-body"></p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="btn-modal-menu">Menu</button>
+          <button class="btn btn-secondary" id="btn-modal-retry">Retry</button>
+          <button class="btn btn-primary" id="btn-modal-next">Next Level</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW TO PLAY -->
+    <div id="howto-overlay" class="modal-overlay">
+      <div class="modal howto-modal">
+        <h2>How to Play</h2>
+        <p class="howto-objective">
+          You're an operator in a data-processing facility. Draw one
+          continuous path from <strong>Start</strong> through every
+          <strong>Data Node</strong> to the <strong>Target</strong> &mdash;
+          before the timer runs out.
+        </p>
+
+        <div class="legend">
+          <div class="legend-row">
+            <span class="tile-swatch tile-start">
+              <svg viewBox="0 0 40 40"><polygon points="15,12 15,28 27,20" fill="#412257"/></svg>
+            </span>
+            <div class="legend-text"><strong>Start</strong><span>Where your path begins.</span></div>
+          </div>
+          <div class="legend-row">
+            <span class="tile-swatch tile-target">
+              <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="9" fill="none" stroke="#F8F6E9" stroke-width="3"/><circle cx="20" cy="20" r="3.5" fill="#F8F6E9"/></svg>
+            </span>
+            <div class="legend-text"><strong>Target</strong><span>Finish here with every data node charged to clear the level.</span></div>
+          </div>
+          <div class="legend-row">
+            <span class="tile-swatch tile-green">
+              <svg viewBox="0 0 40 40"><polygon points="21,10 12,23 18,23 17,30 27,17 21,17" fill="rgba(65,34,87,0.6)"/></svg>
+            </span>
+            <div class="legend-text"><strong>Data Node</strong><span>Your path must pass through every one of these.</span></div>
+          </div>
+          <div class="legend-row">
+            <span class="tile-swatch tile-blue"></span>
+            <div class="legend-text"><strong>Live Processor</strong><span>Safe to route your path through.</span></div>
+          </div>
+          <div class="legend-row">
+            <span class="tile-swatch tile-grey"></span>
+            <div class="legend-text"><strong>Inactive Processor</strong><span>Powered down &mdash; blocks the path. Appears from Tier 2 on.</span></div>
+          </div>
+          <div class="legend-row">
+            <span class="tile-swatch tile-yellow">
+              <svg viewBox="0 0 40 40"><rect x="10" y="14" width="17" height="12" rx="2" fill="none" stroke="rgba(65,34,87,0.7)" stroke-width="2.4"/><rect x="27" y="17.5" width="3" height="5" fill="rgba(65,34,87,0.7)"/></svg>
+            </span>
+            <div class="legend-text"><strong>Capacitor</strong><span>You can cross it, but it starts draining the moment you arrive &mdash; move on before it overloads. Tier 3.</span></div>
+          </div>
+          <div class="legend-row">
+            <span class="tile-swatch tile-blue">
+              <svg viewBox="0 0 40 40"><g stroke="#412257" stroke-width="3" stroke-linecap="round" opacity="0.6"><line x1="14" y1="14" x2="26" y2="26"/><line x1="26" y1="14" x2="14" y2="26"/></g></svg>
+            </span>
+            <div class="legend-text"><strong>Junction</strong><span>The only tile your path may cross itself on. Rare, Tier 3 levels.</span></div>
+          </div>
+        </div>
+
+        <p class="howto-controls">
+          <strong>Controls:</strong> drag from your path's current end to extend it,
+          or tap each next tile one at a time &mdash; both work, even mixed together.
+          Drag back over your own trail to undo a step.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="btn-howto-close">Got it</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
