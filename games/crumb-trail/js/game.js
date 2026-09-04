@@ -16,6 +16,7 @@
       id: "samaritan",
       title: "The Good Samaritan",
       blurb: "Stop for a stranger on the road to Jericho.",
+      card: "assets/ui/card-samaritan.jpg",
       heartLabel: "Good Samaritan",
       verse: "“But a certain Samaritan, as he journeyed, came where he was: and when he saw him, he had compassion on him.”",
       verseRef: "Luke 10:33",
@@ -103,6 +104,7 @@
       id: "richfool",
       title: "The Rich Fool",
       blurb: "A bumper harvest, and a choice about what it's for.",
+      card: "assets/ui/card-richfool.jpg",
       heartLabel: "Rich Toward God",
       verse: "“So is he that layeth up treasure for himself, and is not rich toward God.”",
       verseRef: "Luke 12:21",
@@ -190,6 +192,7 @@
       id: "prodigal",
       title: "The Prodigal Son",
       blurb: "A son comes to his senses, far from home.",
+      card: "assets/ui/card-prodigal.jpg",
       heartLabel: "Welcomed Home",
       verse: "“But when he was yet a great way off, his father saw him, and had compassion, and ran, and fell on his neck, and kissed him.”",
       verseRef: "Luke 15:20",
@@ -737,7 +740,8 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "level-btn";
-      btn.innerHTML = "<strong>" + story.title + "</strong><span>" + story.blurb + "</span>";
+      btn.innerHTML = (story.card ? '<img class="level-btn-bg level-btn-bg--' + story.id + '" src="' + story.card + '" alt="">' : "") +
+        '<span class="level-btn-text"><strong>' + story.title + "</strong><span>" + story.blurb + "</span></span>";
       btn.addEventListener("click", function () {
         const overlay = document.getElementById("sq-open");
         overlay.classList.add("is-off");
