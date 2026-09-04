@@ -288,10 +288,7 @@
           <rect x="56" y="100" width="18" height="60" fill="#3B2A1A" opacity="0.7"/>
           <path d="M65 8 L65 160" stroke="#FFE4B5" stroke-width="3"/>
         </g>
-        <g transform="translate(40 160)">
-          <rect x="0" y="0" width="46" height="200" rx="23" fill="#FFE4B5" stroke="#3B2A1A" stroke-width="4"/>
-          <ellipse cx="23" cy="0" rx="23" ry="12" fill="#8B4E1F" stroke="#3B2A1A" stroke-width="4"/>
-        </g>
+        <image href="assets/ui/silo.png" x="8" y="130" width="112" height="124" preserveAspectRatio="xMidYMax meet"/>
         <ellipse cx="330" cy="86" rx="30" ry="30" fill="#FFF6EB" opacity="0.85"/>
       </svg>`;
     }
