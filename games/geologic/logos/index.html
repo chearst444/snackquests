@@ -1,0 +1,2409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#F5EEDD">
+    <title>GeoLogos &mdash; A Biblical Geography Game</title>
+    <style>
+        :root {
+            /* The palette, from geologos_palette.html. Variable names are the
+               ones the rest of the sheet already used; only the values moved. */
+
+            /* Background / base */
+            --parchment:  #F5EEDD;   /* Parchment  */
+            --parchment-2:#E8DCC0;   /* Warm sand  */
+            --sand:       #E8DCC0;   /* Warm sand, as the land fill */
+            --sand-deep:  #D9C9A3;   /* Deep sand  */
+
+            /* Deep blues: map fill, headers */
+            --deep-blue:  #1B3A57;   /* Deep indigo */
+            --blue-mid:   #2C5B7A;   /* Slate blue  */
+            --blue-soft:  #5A87A0;   /* Dusty blue  */
+
+            /* Muted gold: accents, correct guess, borders. The deep gold is
+               nudged darker than the swatch's #A8842E so small type clears
+               4.5:1 -- 5.0 on the white card, 4.4 on parchment. */
+            --gold-deep:  #8A6A20;
+            --gold:       #C9A227;
+            --gold-soft:  #E0C468;
+
+            /* Terracotta clay: hover, highlight, secondary accent */
+            --clay-deep:  #9C4A2E;
+            --clay:       #C06B45;
+            --clay-soft:  #DA9A78;
+
+            /* Text */
+            --text-head:  #2C3E50;
+            --text-main:  #4A3B2C;
+            --card:       #FFFFFF;
+            /* Not in the palette: the body brown, lightened, for small print.
+               Dark enough to clear 4.5:1 on warm sand, which the score and
+               streak labels sit on. */
+            --text-muted: #6B5C48;
+            --line:       rgba(74, 59, 44, 0.16);
+
+            /* Map overlay lines */
+            --border-anc: #7A6A4F;   /* Ancient borders */
+            --river:      #3E7B8C;   /* River lines     */
+
+            /* Water is blue and land is parchment, the way every map has done
+               it since people started drawing them. This was inverted for a
+               while -- indigo land, pale sea -- and no amount of accurate
+               coastline could rescue it: the eye reads the blue as the sea and
+               refuses to be told otherwise. */
+            --water:      #1B3A57;   /* Deep indigo: the open sea  */
+            --water-deep: #2C5B7A;   /* Slate: lakes, a step lifted */
+
+            /* Land is brown -- an earth tone against the indigo sea, rather
+               than the near-white parchment the cards and chrome use. Four
+               steps, light to deep, for the modern map's countries. */
+            --land:       #BE9B6F;
+            --land-2:     #CBAC85;
+            --land-3:     #B08C5F;
+            --land-4:     #9E7C52;
+
+            /* Rivers take the sea's blue -- all water one colour -- because the
+               palette's lighter #3E7B8C reads at 1.8:1 against brown land,
+               which is to say not at all. */
+            --river-line: #1B3A57;
+        }
+
+        * { box-sizing: border-box; }
+
+        /* Mobile locks: no page scroll, no pinch-zoom of the document, no
+           pull-to-refresh, no text selection or long-press callout. Gesture
+           handling belongs to the map (d3-zoom), not the browser. */
+        html, body, svg, canvas {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: none;
+        }
+
+        html, body {
+            overflow: hidden;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--parchment);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ---- Header ---------------------------------------------------- */
+        header {
+            position: relative;
+            background-color: var(--card);
+            padding: 12px 28px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            padding-left: max(28px, env(safe-area-inset-left));
+            padding-right: max(28px, env(safe-area-inset-right));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(74, 59, 44, 0.10);
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 10px;
+            overflow: hidden;
+        }
+        /* A single quiet gold rule, in place of the American edition's ribbon. */
+        header::after {
+            content: "";
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 2px;
+            pointer-events: none;
+            background: linear-gradient(90deg,
+                var(--gold-soft), var(--gold) 45%, var(--gold-soft));
+            opacity: 0.75;
+        }
+
+        .brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; z-index: 1; }
+
+        h1 {
+            margin: 0;
+            font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+            font-size: 1.5rem;
+            letter-spacing: 0.02em;
+            color: var(--text-head);
+            font-weight: 700;
+        }
+        h1 span {
+            display: block;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.7rem;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        .stats { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; z-index: 1; }
+
+        .pill {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--clay-deep);
+            background: var(--parchment-2);
+            border: 1px solid var(--line);
+            padding: 6px 14px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .pill .lbl {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-right: 4px;
+        }
+
+        button, select {
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--deep-blue);
+            background: var(--card);
+            border: 1.5px solid var(--sand-deep);
+            padding: 7px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.18s, border-color 0.18s, color 0.18s;
+            touch-action: manipulation;
+            min-height: 40px;
+        }
+        select {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--blue-mid) 50%),
+                linear-gradient(135deg, var(--blue-mid) 50%, transparent 50%);
+            background-position: right 14px center, right 9px center;
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+            padding-right: 28px;
+        }
+        /* Hover effects only where a real hover pointer exists, so styles
+           don't get stuck after a tap on touch devices. */
+        @media (hover: hover) {
+            button:hover, select:hover { background: var(--parchment-2); border-color: var(--gold); }
+        }
+        button:active { background: var(--sand); }
+        button:disabled { opacity: 0.42; cursor: default; }
+        button.primary {
+            background: var(--deep-blue);
+            border-color: var(--deep-blue);
+            color: var(--parchment);
+        }
+        @media (hover: hover) {
+            button.primary:hover { background: var(--blue-mid); border-color: var(--blue-mid); }
+        }
+
+        /* Era toggle: one segmented control, not two loose buttons. */
+        .era {
+            display: inline-flex;
+            border: 1.5px solid var(--sand-deep);
+            background: var(--card);
+            border-radius: 999px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .era button {
+            border: none;
+            background: none;
+            min-height: 34px;
+            padding: 5px 13px;
+            border-radius: 999px;
+            font-size: 0.84rem;
+            color: var(--text-muted);
+        }
+        .era button.on {
+            background: var(--deep-blue);
+            color: var(--parchment);
+        }
+        @media (hover: hover) {
+            .era button:hover { background: var(--parchment-2); color: var(--deep-blue); }
+            .era button.on:hover { background: var(--blue-mid); color: var(--parchment); }
+        }
+
+        #game-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 14px;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        /* ---- Clue card ------------------------------------------------ */
+        #clue-card {
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: 0 4px 14px rgba(74, 59, 44, 0.10);
+            border-left: 5px solid var(--gold);
+            z-index: 5;
+        }
+
+        .clue-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .clue-head h2 {
+            margin: 0;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.11em;
+        }
+        .clue-head .progress {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--blue-mid);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        ol {
+            margin: 0;
+            padding-left: 22px;
+            /* The clue list is the one place vertical scrolling is allowed. */
+            overflow-y: auto;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            max-height: 28vh;
+        }
+        li {
+            margin-bottom: 6px;
+            font-size: 1.05rem;
+            line-height: 1.4;
+            animation: clue-in 0.28s ease-out;
+        }
+        li::marker { color: var(--gold-deep); font-weight: 700; }
+        @keyframes clue-in {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        .clue-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        /* Distance read-out after a miss. Distance only -- naming the nearest
+           place, or the bearing, would hand over the answer. */
+        #miss-note {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--clay-deep);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        #miss-note.show { opacity: 1; }
+        /* An ambiguous click is not a miss: it costs nothing and reads calmly. */
+        #miss-note.info { color: var(--blue-mid); font-weight: 600; }
+
+        /* ---- Map ------------------------------------------------------ */
+        #map-viewport {
+            width: 100%;
+            flex: 1;
+            /* The dark navy of the background image's sea, so the letterbox
+               bands around the image read as more sea, not a blue frame. */
+            background: #26303C;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 0 1px var(--line);
+            min-height: 0;
+        }
+
+        svg { width: 100%; height: 100%; display: block; cursor: crosshair; }
+        svg:active { cursor: grabbing; }
+
+        /* ---- Locator inset ---------------------------------------------- */
+        #locator {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            width: 168px;
+            height: 105px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(74, 59, 44, 0.28);
+            background: var(--water);
+            /* Faded out unless zoomed in; JS adds .show. Never eats a click. */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+            z-index: 45;
+        }
+        #locator.show { opacity: 0.92; }
+        .loc-sea   { fill: var(--water); }
+        #loc-land  { fill: var(--land); stroke: none; }
+        #loc-box {
+            fill: var(--gold-soft);
+            fill-opacity: 0.28;
+            stroke: var(--gold-deep);
+            stroke-width: 6;
+            vector-effect: non-scaling-stroke;
+            paint-order: stroke;
+        }
+        /* On a phone the inset would crowd the map; hidden below the width
+           where the header collapses to two rows. */
+        @media (max-width: 720px) {
+            #locator { width: 116px; height: 73px; right: 10px; top: 10px; }
+        }
+        @media (max-width: 420px) {
+            #locator { display: none; }
+        }
+
+        #zoom-controls {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 50;
+        }
+        #zoom-controls button {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            font-size: 1.25rem;
+            line-height: 1;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.93);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ---- Map paint ------------------------------------------------- */
+        /* The base map is now a single background image (#basemap-img), one
+           piece of art shared by every era. The traced coastline, land, water
+           and rivers are no longer painted -- but the GeoJSON they came from is
+           still loaded and kept in `basemap` (see the load handler) so era
+           tagging and clue logic can use it. Only their rendering is off. The
+           locator inset keeps its own land silhouette (#loc-land), which these
+           rules do not touch. */
+        .sea, .land, .country, .water-body, .river { display: none; }
+
+        /* Modern era: real borders, four muted tints cycled by index. */
+        .country {
+            stroke: rgba(122, 106, 79, 0.55);
+            stroke-width: 0.6;
+            vector-effect: non-scaling-stroke;
+            pointer-events: none;
+        }
+        .country.t0 { fill: var(--land); }
+        .country.t1 { fill: var(--land-3); }
+        .country.t2 { fill: var(--land-2); }
+        .country.t3 { fill: var(--land-4); }
+
+        /* No ancient-region fills exist any more: the ancient maps are the
+           landmass, the water, and names. */
+
+        .water-body {
+            fill: var(--water);
+            stroke: var(--river);
+            stroke-opacity: 0.55;
+            stroke-width: 0.5;
+            vector-effect: non-scaling-stroke;
+            pointer-events: none;
+        }
+        .river {
+            fill: none;
+            stroke: var(--river-line);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            vector-effect: non-scaling-stroke;
+            pointer-events: none;
+        }
+
+        /* ---- Map labels ------------------------------------------------ */
+        text {
+            pointer-events: none;
+            paint-order: stroke;
+            stroke-linejoin: round;
+        }
+        .lbl-country {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-anchor: middle;
+            fill: #3E3220;
+            stroke: var(--land);
+            stroke-width: 2.6px;
+        }
+        .lbl-country.sm { font-size: 7px; letter-spacing: 0.07em; }
+        .lbl-region {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-anchor: middle;
+            fill: #33281A;
+            stroke: var(--land);
+            stroke-width: 2.8px;
+        }
+        .lbl-region.sm { font-size: 8px; letter-spacing: 0.1em; }
+        /* Real summits, from the same atlas linework. */
+        .lbl-mountain {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 7.5px;
+            letter-spacing: 0.04em;
+            text-anchor: middle;
+            fill: var(--gold-soft);
+            stroke: rgba(27, 58, 87, 0.85);
+            stroke-width: 2.4px;
+        }
+        /* Names that span several regions -- Canaan, Mesopotamia. */
+        .lbl-region.wide {
+            font-size: 13px;
+            letter-spacing: 0.42em;
+            fill: rgba(51, 40, 26, 0.5);
+            stroke-width: 3px;
+        }
+        .lbl-water {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-anchor: middle;
+            fill: #9FBBCB;
+            stroke: rgba(27, 58, 87, 0.9);
+            stroke-width: 2.4px;
+            paint-order: stroke;
+        }
+        .lbl-water.sm { font-size: 6.5px; letter-spacing: 0.04em; }
+
+        /* The small labels -- Judah, Lebanon, the Dead Sea -- pile on top of
+           each other in the Levant at low zoom, where that strip is only a
+           few dozen pixels wide. They appear once there is room for them. */
+        .zoom-hidden { display: none; }
+
+        /* ---- Ambiguity picker ------------------------------------------
+           Last resort, not the first line of defence: the map zooms to
+           separate close places, and this only appears when it cannot --
+           when two entries are the same summit under different names. */
+        #picker {
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 70;
+            background: var(--card);
+            border-radius: 12px;
+            border-top: 4px solid var(--gold);
+            box-shadow: 0 14px 34px rgba(27, 58, 87, 0.28);
+            padding: 13px 15px;
+            width: min(310px, calc(100% - 28px));
+            text-align: center;
+        }
+        #picker.show { display: block; }
+        #picker .pk-q {
+            margin: 0 0 10px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        #pk-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 9px; }
+        #pk-list button {
+            width: 100%;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--deep-blue);
+        }
+        #pk-cancel {
+            border: none;
+            background: none;
+            min-height: 28px;
+            padding: 2px 8px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* ---- Sites ------------------------------------------------------
+           Every one of the 93 locations, marked but not named. Naming them
+           would print the answers on the map; leaving them off entirely --
+           which is what shipped -- left nothing to aim at, which is worse.
+           The clue tells you which place; the map shows you where the places
+           are. Hit-testing is done on coordinates, so these never intercept
+           the click themselves. */
+        #site-layer { pointer-events: none; }
+        .site-halo {
+            fill: var(--water);
+            fill-opacity: 0.12;
+        }
+        .site-dot {
+            fill: var(--parchment);
+            stroke: var(--clay-deep);
+            stroke-width: 1.3;
+            vector-effect: non-scaling-stroke;
+        }
+        /* The answered one stays lit for the rest of the round. */
+        /* Study mode writes every site's name on the map. Hidden the rest of
+           the time: naming them during play would print the answers. */
+        .site-name {
+            display: none;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 7.5px;
+            font-weight: 700;
+            text-anchor: middle;
+            fill: #33281A;
+            stroke: var(--land);
+            stroke-width: 2.4px;
+            paint-order: stroke;
+        }
+        html.study .site-name { display: block; }
+        html.study .site-name.crowded { display: none; }
+
+        /* Gold sits at almost exactly the brightness of the brown land, so
+           the answered site differs in weight, not only in hue. */
+        .site.found .site-dot {
+            fill: var(--clay-deep);
+            stroke: var(--gold);
+            stroke-width: 1.8;
+        }
+
+        /* ---- Markers --------------------------------------------------- */
+        #marker-layer { pointer-events: none; }
+
+        .guess-x {
+            stroke: var(--clay-deep);
+            stroke-width: 2.4;
+            vector-effect: non-scaling-stroke;
+            stroke-linecap: round;
+            animation: x-fade 1.6s ease-out forwards;
+        }
+        @keyframes x-fade {
+            0%   { opacity: 0.95; }
+            70%  { opacity: 0.95; }
+            100% { opacity: 0; }
+        }
+
+        /* Scaled rather than grown by radius: animating the `r` geometry
+           property is not safe across browsers, a transform is. */
+        .pin circle.halo {
+            fill: none;
+            stroke: var(--gold-deep);
+            stroke-width: 2;
+            vector-effect: non-scaling-stroke;
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: halo 1.2s ease-out 2;
+        }
+        @keyframes halo {
+            from { transform: scale(0.4); opacity: 0.9; }
+            to   { transform: scale(2.6); opacity: 0; }
+        }
+        .pin circle.dot {
+            fill: var(--clay-deep);
+            stroke: var(--parchment);
+            stroke-width: 1.6;
+            vector-effect: non-scaling-stroke;
+        }
+        .pin text {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 10px;
+            font-weight: 700;
+            text-anchor: middle;
+            fill: var(--text-head);
+            stroke: var(--parchment);
+            stroke-width: 3px;
+        }
+
+        /* ---- Reveal card ----------------------------------------------
+           Fixed to the viewport rather than to the map, so a short map area
+           on a phone can never squeeze it. The card is a flex column: the
+           title bar and the action bar are pinned, and only the middle
+           scrolls, so "Next place" is always in view. */
+        #reveal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            padding-top: max(16px, env(safe-area-inset-top));
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            background: rgba(27, 58, 87, 0.46);
+            z-index: 200;
+        }
+        #reveal.show { display: flex; }
+
+        .reveal-card {
+            background: var(--card);
+            border-radius: 14px;
+            width: min(430px, 100%);
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            box-shadow: 0 24px 48px rgba(27, 58, 87, 0.30);
+            border-top: 5px solid var(--gold);
+            animation: card-in 0.32s ease-out;
+        }
+        @keyframes card-in {
+            from { opacity: 0; transform: translateY(14px) scale(0.97); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        .rv-head {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid var(--line);
+        }
+        .rv-head h3 {
+            margin: 0;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--text-head);
+            letter-spacing: 0.01em;
+        }
+        .reveal-sub {
+            margin: 3px 0 0;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gold-deep);
+        }
+        #rv-close {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            min-height: 34px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 1rem;
+            line-height: 1;
+            border-color: var(--line);
+            color: var(--text-muted);
+        }
+
+        /* The only scrolling region */
+        .rv-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 14px 16px 4px;
+        }
+
+        .rv-foot {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--line);
+            background: var(--card);
+        }
+        .rv-foot button { flex: 1; }
+
+        /* Modern-country bonus, the counterpart of the capital prompt in the
+           American edition. */
+        #bonus-block {
+            background: var(--parchment-2);
+            border-radius: 10px;
+            padding: 11px 13px;
+            margin-bottom: 12px;
+        }
+        #bonus-block .q { font-size: 0.88rem; font-weight: 600; margin: 0 0 8px; }
+        .bonus-row { display: flex; gap: 7px; }
+        #bonus-input {
+            flex: 1;
+            min-width: 0;
+            font: inherit;
+            /* Must stay at 16px: iOS Safari zooms the page when focusing an
+               input with a smaller font, which would wreck the fixed layout. */
+            font-size: 16px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1.5px solid var(--sand-deep);
+            background: #fff;
+            color: var(--text-main);
+            -webkit-user-select: text;
+            user-select: text;
+            touch-action: manipulation;
+        }
+        #bonus-input:focus { outline: 2px solid var(--gold); outline-offset: -1px; }
+        #bonus-result { margin: 8px 0 0; font-size: 0.9rem; font-weight: 700; }
+        #bonus-result.right { color: var(--gold-deep); }
+        #bonus-result.miss  { color: var(--clay-deep); }
+
+        .chips { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .chip {
+            flex: 1 1 150px;
+            background: var(--parchment-2);
+            border-radius: 10px;
+            padding: 9px 11px;
+            min-width: 0;
+        }
+        .chip .k {
+            display: block;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .chip .v { font-size: 0.92rem; font-weight: 600; color: var(--text-head); }
+
+        #dyk {
+            border-left: 4px solid var(--gold);
+            background: #FAF4E6;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+        #dyk b {
+            display: block;
+            font-size: 0.64rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--gold-deep);
+            margin-bottom: 4px;
+        }
+
+        #rv-clues {
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+            margin-bottom: 4px;
+        }
+        #rv-clues summary {
+            cursor: pointer;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        #rv-clues ol {
+            max-height: none;
+            overflow: visible;
+            margin-top: 8px;
+            padding-left: 20px;
+        }
+        #rv-clues li { font-size: 0.88rem; line-height: 1.4; animation: none; }
+
+        .reveal-actions { display: flex; gap: 8px; }
+        .reveal-actions button { flex: 1; }
+
+        /* ---- Round summary -------------------------------------------- */
+        #summary {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(27, 58, 87, 0.46);
+            z-index: 210;
+            text-align: center;
+        }
+        #summary.show { display: flex; }
+        #summary .reveal-card {
+            text-align: center;
+            display: block;
+            overflow: visible;
+            padding: 18px 18px 16px;
+        }
+        #summary .reveal-card h3 {
+            margin: 0;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.4rem;
+            color: var(--text-head);
+        }
+        #summary .reveal-sub { margin: 2px 0 0; }
+        #summary .big {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: var(--clay-deep);
+            margin: 6px 0 2px;
+        }
+
+        #loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* ---- Touch HUD ------------------------------------------------
+           Shown only on coarse-pointer devices, or with ?touch=1 in the URL
+           (html.touch-mode is set by script). It moves the round actions
+           down to thumb reach and frees header space on narrow screens. */
+        #touch-hud {
+            display: none;
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            z-index: 50;
+        }
+        #touch-hud button {
+            min-height: 48px;
+            min-width: 104px;
+            font-size: 0.92rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(2px);
+        }
+
+        html.touch-mode #touch-hud { display: flex; }
+        html.touch-mode header .stats > button.js-skip { display: none; }
+        html.touch-mode #zoom-controls button { width: 48px; height: 48px; font-size: 1.45rem; }
+
+        /* ---- Responsive layout ---------------------------------------- */
+        @media (max-width: 720px) {
+            /* Stack into two tidy rows -- a brand line and a single-row
+               control strip -- instead of letting the controls wrap into
+               three or four rows and eat the map's height. */
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                flex-wrap: nowrap;
+                gap: 7px;
+                padding: 8px 12px;
+                padding-top: max(8px, env(safe-area-inset-top));
+                padding-left: max(12px, env(safe-area-inset-left));
+                padding-right: max(12px, env(safe-area-inset-right));
+            }
+            h1 { font-size: 1.15rem; line-height: 1.2; }
+            h1 span { font-size: 0.6rem; margin-top: 1px; }
+            .brand { gap: 8px; flex-wrap: nowrap; align-items: center; }
+
+            /* The controls scroll sideways rather than wrapping. */
+            .stats {
+                gap: 6px;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                overflow-x: auto;
+                overscroll-behavior-x: contain;
+                touch-action: pan-x;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 1px;
+            }
+            .stats::-webkit-scrollbar { display: none; }
+            .stats > * { flex: 0 0 auto; }
+
+            .pill { font-size: 0.82rem; padding: 5px 11px; }
+            .pill .lbl { font-size: 0.64rem; }
+            button, select { padding: 6px 11px; font-size: 0.82rem; }
+            .era button { padding: 5px 11px; font-size: 0.78rem; }
+
+            #game-container {
+                padding: 10px;
+                padding-left: max(10px, env(safe-area-inset-left));
+                padding-right: max(10px, env(safe-area-inset-right));
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+                gap: 10px;
+            }
+            #clue-card { padding: 11px 13px; border-left-width: 4px; }
+            li { font-size: 0.95rem; margin-bottom: 5px; }
+            ol { max-height: 24vh; padding-left: 19px; }
+            .rv-head { padding: 12px 13px 9px; }
+            .rv-body { padding: 12px 13px 4px; }
+            .rv-foot { padding: 10px 13px; }
+            .rv-head h3 { font-size: 1.2rem; }
+        }
+
+        @media (max-width: 400px) {
+            h1 { font-size: 1.02rem; }
+            h1 span { letter-spacing: 0.09em; }
+            .pill { font-size: 0.78rem; padding: 5px 9px; }
+            #game-container { padding: 8px; gap: 8px; }
+            ol { max-height: 22vh; }
+        }
+
+        /* Short/landscape phones: give the map as much height as possible. */
+        @media (max-height: 560px) and (orientation: landscape) {
+            header {
+                flex-direction: row;
+                align-items: center;
+                padding-top: 5px;
+                padding-bottom: 5px;
+                gap: 8px;
+            }
+            .brand { flex: 0 1 auto; min-width: 0; }
+            .stats { flex: 1 1 auto; justify-content: flex-end; min-width: 0; }
+            h1 { font-size: 1rem; }
+            h1 span { display: none; }
+            #game-container { padding: 8px; gap: 8px; }
+            #clue-card { padding: 8px 11px; }
+            .clue-head { margin-bottom: 5px; }
+            ol { max-height: 19vh; }
+            li { font-size: 0.88rem; margin-bottom: 3px; }
+            .rv-head { padding: 9px 13px 7px; }
+            .rv-head h3 { font-size: 1.1rem; }
+        }
+    </style>
+<style>
+
+        #sq-open {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        #sq-open.is-off { display: none !important; }
+        #sq-open .sq-stage {
+            position: relative;
+            width: min(100%, 1400px);
+            max-height: 100%;
+            max-height: 100dvh;
+        }
+        #sq-open .sq-art {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 100dvh;
+            object-fit: contain;
+        }
+        #sq-open.pixel .sq-art {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #sq-open .sq-play {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: none;
+            border: 0;
+            padding: 12px 16px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-play img {
+            display: block;
+            width: 276px;
+            height: 87px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            image-rendering: -moz-crisp-edges;
+            pointer-events: none;
+        }
+        @media (max-width: 640px) {
+            #sq-open .sq-play img { width: 184px; height: 58px; }
+        }
+
+        #sq-open .sq-continue {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(16px, 4vw, 22px);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 12px 22px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-howto {
+            display: none;
+            width: min(100%, 560px);
+            max-height: 92dvh;
+            overflow: auto;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        #sq-open.is-howto .sq-stage { display: none; }
+        #sq-open.is-howto .sq-howto { display: block; }
+        #sq-open .sq-howto-card {
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            padding: 22px 20px 16px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #sq-open .sq-howto-card h2 {
+            margin: 0 0 12px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(22px, 5vw, 30px);
+            line-height: 1.2;
+        }
+        #sq-open .sq-howto-card p {
+            margin: 0 0 10px;
+            font-size: clamp(15px, 3.6vw, 18px);
+            line-height: 1.45;
+            text-align: left;
+        }
+        #sq-open.is-howto .sq-play {
+            position: static;
+            transform: none;
+            margin: 10px auto 0;
+            display: inline-block;
+        }
+
+        #sq-open .sq-studio {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #fff6eb;
+            background: rgba(26, 18, 12, 0.78);
+            border: 2px solid #e8a838;
+            padding: 4px 8px 4px 4px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #sq-open .sq-studio svg {
+            display: block;
+            width: 22px;
+            height: 22px;
+            flex: none;
+        }
+
+
+
+</style>
+</head>
+<body>
+<div id="sq-open" role="dialog" aria-modal="true" aria-label="Geo Logos">
+    <a class="sq-studio" href="https://snackquests.com" id="sq-studio">
+    <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true" focusable="false">
+      <ellipse cx="32" cy="38" rx="20" ry="14" fill="#E8A838"/>
+      <ellipse cx="32" cy="34" rx="18" ry="11" fill="#F4B942"/>
+      <circle cx="24" cy="34" r="2.2" fill="#3B2A1A"/>
+      <circle cx="40" cy="34" r="2.2" fill="#3B2A1A"/>
+      <path d="M26 40c2 2.4 10 2.4 12 0" fill="none" stroke="#3B2A1A" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Snack Quests</span>
+  </a>
+<div class="sq-stage" id="sq-art-screen">
+    <img class="sq-art" src="assets/opening.jpg" alt="Geo Logos">
+    <button type="button" class="sq-continue" id="sq-continue">Tap to continue</button>
+  </div>
+  <div class="sq-howto" id="sq-howto">
+    <div class="sq-howto-card">
+      <h2>How to play</h2>
+      <p>Look for clues in the Bible. Find the place on the map of Bible lands.</p>
+      <button type="button" class="sq-play" id="sq-play" aria-label="Play">
+        <img src="assets/btn_play.png" alt="PLAY" width="92" height="29">
+      </button>
+    </div>
+  </div>
+</div>
+
+
+    <header>
+        <div class="brand">
+            <h1>GeoLogos
+                <span>A Biblical Geography Game</span>
+            </h1>
+        </div>
+        <div class="stats">
+            <div class="pill"><span class="lbl">Score</span><span id="score">0</span></div>
+            <div class="pill"><span class="lbl">Streak</span><span id="streak">0</span></div>
+            <div class="era" role="group" aria-label="Map era">
+                <button id="era-ot" class="on" aria-pressed="true">Old Testament</button>
+                <button id="era-nt" aria-pressed="false">New Testament</button>
+                <button id="era-modern" aria-pressed="false">Modern</button>
+            </div>
+            <select id="group-select" aria-label="Choose a region">
+                <option value="All">All Locations</option>
+                <option value="Jerusalem &amp; Judea">Jerusalem &amp; Judea</option>
+                <option value="Samaria &amp; the Coast">Samaria &amp; the Coast</option>
+                <option value="Galilee &amp; the North">Galilee &amp; the North</option>
+                <option value="Egypt &amp; Sinai">Egypt &amp; Sinai</option>
+                <option value="Mesopotamia &amp; the East">Mesopotamia &amp; the East</option>
+                <option value="Greece, Rome &amp; Asia Minor">Greece, Rome &amp; Asia Minor</option>
+            </select>
+            <button class="js-study" aria-pressed="false">Study map</button>
+            <button class="js-skip">Skip &rarr;</button>
+        </div>
+    </header>
+
+    <div id="game-container">
+        <div id="clue-card">
+            <div class="clue-head">
+                <h2 id="clue-title">Deduction clues</h2>
+                <span class="progress" id="round-progress"></span>
+            </div>
+            <ol id="clue-list"><li>Loading the locations&hellip;</li></ol>
+            <div class="clue-actions">
+                <button class="js-next-clue" disabled>Next clue &darr;</button>
+                <span id="miss-note"></span>
+            </div>
+        </div>
+
+        <div id="map-viewport">
+            <div id="loading">Loading the lands of the Bible&hellip;</div>
+
+            <!-- `slice` (cover), not `meet` (letterbox): the map is wide and a
+                 portrait phone is tall, so `meet` fit it to the width and left
+                 dark bands of dead sea above and below. `slice` fills the whole
+                 viewport instead, cropping the edges of the frame rather than
+                 the middle. Nothing is lost -- panning is bounded to the viewBox
+                 (translateExtent), so the cropped edges, Italy and Mesopotamia
+                 among them, are still a short drag away. -->
+            <svg id="map-svg" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid slice">
+                <g id="map-container">
+                    <!-- The base map: one static antique image, shared by every
+                         era. It lives inside #map-container so it pans and zooms
+                         locked to the site dots. Its rect and the projection
+                         (see load handler) come from the same fit to the art, so
+                         a lon/lat lands where the art draws that place. The rect
+                         fills the viewBox width; the ~20px it overhangs top and
+                         bottom is clipped, which is the "cover" fill. -->
+                    <image id="basemap-img" href="map-background.jpg"
+                           x="0" y="-19.698" width="975" height="649.396"
+                           preserveAspectRatio="none"></image>
+                    <rect id="sea" class="sea" x="-2000" y="-2000" width="5000" height="5000"></rect>
+                    <g id="modern-layer"></g>
+                    <g id="ancient-layer"></g>
+                    <g id="hydro-layer"></g>
+                    <g id="site-layer"></g>
+                    <g id="label-layer"></g>
+                    <g id="marker-layer"></g>
+                </g>
+            </svg>
+
+            <!-- Locator inset: a thumbnail of the whole region with a box
+                 around the current view. Appears only once zoomed in enough
+                 that the wider context is off-screen. Non-interactive. -->
+            <svg id="locator" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet"
+                 aria-hidden="true">
+                <rect class="loc-sea" x="0" y="0" width="975" height="610"></rect>
+                <path id="loc-land"></path>
+                <rect id="loc-box"></rect>
+            </svg>
+
+            <div id="zoom-controls">
+                <button id="zc-in" title="Zoom in" aria-label="Zoom in">+</button>
+                <button id="zc-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
+                <button id="zc-reset" title="Reset view" aria-label="Reset view">&#10530;</button>
+            </div>
+
+            <div id="touch-hud">
+                <button class="js-next-clue" disabled>Next clue &darr;</button>
+                <button class="js-skip">Skip &rarr;</button>
+            </div>
+
+            <!-- Shown only when no amount of zooming could separate the
+                 places under the click -- Horeb and Sinai are one summit. -->
+            <div id="picker" role="dialog" aria-label="Which place do you mean?">
+                <p class="pk-q">These share the same spot. Which do you mean?</p>
+                <div id="pk-list"></div>
+                <button id="pk-cancel">Never mind</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Post-guess reveal: same card pattern as the American Edition -->
+    <div id="reveal">
+        <div class="reveal-card">
+            <div class="rv-head">
+                <div>
+                    <h3 id="rv-name"></h3>
+                    <p class="reveal-sub" id="rv-sub"></p>
+                </div>
+                <button id="rv-close" title="Close" aria-label="Close">&#10005;</button>
+            </div>
+
+            <div class="rv-body">
+                <div id="bonus-block">
+                    <p class="q" id="bonus-q"></p>
+                    <div class="bonus-row" id="bonus-row">
+                        <input id="bonus-input" type="text" autocomplete="off"
+                               autocorrect="off" autocapitalize="words" spellcheck="false"
+                               placeholder="Modern country&hellip;">
+                        <button id="bonus-submit" class="primary">Answer</button>
+                    </div>
+                    <p id="bonus-result"></p>
+                </div>
+
+                <div class="chips">
+                    <div class="chip"><span class="k">Ancient region</span><span class="v" id="rv-ancient"></span></div>
+                    <div class="chip"><span class="k">Modern country</span><span class="v" id="rv-modern"></span></div>
+                </div>
+
+                <div id="dyk"><b>Did you know?</b><span id="rv-dyk"></span></div>
+
+                <details id="rv-clues">
+                    <summary>All clues for this place</summary>
+                    <ol id="rv-clue-list"></ol>
+                </details>
+            </div>
+
+            <div class="rv-foot">
+                <button id="rv-next" class="primary">Next place &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary">
+        <div class="reveal-card">
+            <h3 id="sm-title"></h3>
+            <p class="reveal-sub">Round complete</p>
+            <div class="big" id="sm-score"></div>
+            <p id="sm-detail" style="margin:0 0 14px; color:var(--text-muted); font-size:0.9rem;"></p>
+            <div class="reveal-actions">
+                <button id="sm-again" class="primary">Play again</button>
+                <button id="sm-all">All locations</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script>
+    // ---------------------------------------------------------------------
+    // GeoLogos. Same deduction loop as GeoLogic and the American Edition
+    // (score +10, streak, skip resets the streak, clues revealed one at a
+    // time), but the answer is a point on the map rather than a state, so a
+    // guess is judged by how close the click lands -- see handleGuess.
+    // ---------------------------------------------------------------------
+
+    const SCORE_CORRECT = 10;   // identical to the other editions
+    const SCORE_BONUS   = 5;    // naming the modern country
+
+    // ---- Telling close places apart ------------------------------------
+    // The coordinates are the real ones, and the real ones are crowded:
+    // Golgotha and Mount Moriah are 500 m apart, the Mount of Olives and
+    // Gethsemane 560 m, and Horeb is Sinai -- the same summit under a second
+    // name. So a click is not judged against the answer until it has settled
+    // on one place. Ambiguity costs nothing: no streak lost, no clue spent.
+    const AMBIG_RATIO   = 2.5;  // the nearest must beat the runner-up by this
+    const SLOP_PX       = 22;   // how close a click counts as "at" a place
+    const SEPARATION_PX = 60;   // gap to open up between two contested places
+    const ZOOM_STEP     = 6;    // most one ambiguous click will zoom in by
+    const MAX_K         = 800;  // enough to separate Gethsemane from Moriah
+    const SAME_SPOT_KM  = 0.02; // below this, zooming will never help
+
+    // The Biblical world: Rome and Malta in the west, Ur and Susa in the
+    // east, Ararat in the north, the Red Sea in the south. The frame reaches
+    // Italy because Paul did -- it costs about a fifth of the scale
+    // everywhere else, which the zoom absorbs.
+    const BBOX = { lon: [11.0, 49.5], lat: [24.0, 44.0] };
+
+    // ---- Ancient regions: names only, never shapes -----------------------
+    // There were 20 filled polygons here, drawn by hand. They are gone, and
+    // nothing filled replaces them. Iron Age political boundaries do not exist
+    // as open data, and the Greek and Roman ones that do exist are still
+    // territory blobs laid over a map -- so this map draws only what is real
+    // underneath (coastline, rivers, lakes) and names its regions in text.
+    //
+    // A name at a real place is a claim worth making. A border is not.
+
+    // Old Testament names. No dataset carries Iron Age regions, so these are
+    // placed by hand at the centres scholarship puts them at.
+    const OT_REGIONS = [
+        { text: "JUDAH",      at: [34.95, 31.28] },
+        { text: "ISRAEL",     at: [35.35, 32.60] },
+        { text: "PHILISTIA",  at: [34.60, 31.45], sm: true },
+        { text: "PHOENICIA",  at: [35.50, 33.90], sm: true },
+        { text: "ARAM",       at: [36.90, 35.25] },
+        { text: "AMMON",      at: [36.05, 31.95], sm: true },
+        { text: "MOAB",       at: [35.85, 31.30], sm: true },
+        { text: "EDOM",       at: [35.55, 30.30], sm: true },
+        { text: "GILEAD",     at: [35.95, 32.45], sm: true },
+        { text: "BASHAN",     at: [36.20, 32.85], sm: true },
+        { text: "ASSYRIA",    at: [42.60, 36.20] },
+        { text: "BABYLONIA",  at: [44.60, 32.30] },
+        { text: "SUMER",      at: [46.10, 31.00], sm: true },
+        { text: "ELAM",       at: [48.40, 32.10], sm: true },
+        { text: "MEDIA",      at: [48.60, 35.40], sm: true },
+        { text: "URARTU",     at: [43.60, 39.20], sm: true },
+        { text: "EGYPT",      at: [31.20, 27.20] },
+        { text: "GOSHEN",     at: [31.75, 30.75], sm: true },
+        { text: "SINAI",      at: [33.70, 29.30], sm: true },
+        { text: "MIDIAN",     at: [35.70, 28.20], sm: true },
+        { text: "ARABIA",     at: [40.50, 27.80] },
+        { text: "MESOPOTAMIA", at: [42.20, 33.90], wide: true }
+    ];
+
+    // New Testament names are resolved at build time by data/build_labels.py
+    // and read from data/basemap/region_labels.json. Each carries the source it
+    // came from: "awmc" for a position taken off the Barrington Atlas label
+    // paths, "placed" for one set by hand -- either because the atlas has no
+    // such label, or because every candidate with that name turned out to be a
+    // homonym somewhere else entirely. Assyria matched a label in Anatolia and
+    // Achaia one on the Black Sea coast, 15 degrees from Greece.
+
+    // ---- Modern era: label placements ----------------------------------
+    // Hand-placed rather than derived from centroids: half of these countries
+    // are too narrow for their own centroid to be legible.
+    const COUNTRY_LABELS = [
+        { text: "TURKEY", at: [32.6, 39.0] },
+        { text: "GREECE", at: [22.0, 39.3] },
+        { text: "ITALY", at: [14.6, 41.3] },
+        { text: "MALTA", at: [14.40, 35.75], sm: true },
+        { text: "SYRIA", at: [38.4, 34.8] },
+        { text: "IRAQ", at: [43.4, 33.4] },
+        { text: "IRAN", at: [47.8, 33.4] },
+        { text: "SAUDI ARABIA", at: [41.2, 28.6] },
+        { text: "EGYPT", at: [30.0, 27.4] },
+        { text: "JORDAN", at: [36.9, 31.0] },
+        { text: "LEBANON", at: [35.95, 34.05], sm: true },
+        { text: "ISRAEL", at: [34.98, 31.25], sm: true },
+        { text: "PALESTINE", at: [35.28, 32.28], sm: true },
+        { text: "CYPRUS", at: [33.20, 35.05], sm: true },
+        { text: "KUWAIT", at: [47.75, 29.35], sm: true }
+    ];
+
+    // ---- Both eras: water is loaded from data/basemap, not traced here ---
+
+    const SEA_LABELS = [
+        { text: "MEDITERRANEAN SEA", at: [28.6, 33.7] },
+        { text: "AEGEAN SEA", at: [24.9, 38.5], sm: true },
+        { text: "IONIAN SEA", at: [18.6, 37.6], sm: true },
+        { text: "ADRIATIC SEA", at: [17.4, 42.2], sm: true },
+        { text: "TYRRHENIAN SEA", at: [12.2, 39.6], sm: true },
+        { text: "BLACK SEA", at: [33.5, 42.8], sm: true },
+        { text: "RED SEA", at: [35.9, 26.3], sm: true },
+        { text: "PERSIAN GULF", at: [49.0, 29.2], sm: true }
+    ];
+
+    const els = {
+        clues:      document.getElementById('clue-list'),
+        clueTitle:  document.getElementById('clue-title'),
+        progress:   document.getElementById('round-progress'),
+        missNote:   document.getElementById('miss-note'),
+        score:      document.getElementById('score'),
+        streak:     document.getElementById('streak'),
+        loading:    document.getElementById('loading'),
+        svg:        document.getElementById('map-svg'),
+        modern:     document.getElementById('modern-layer'),
+        ancient:    document.getElementById('ancient-layer'),
+        hydro:      document.getElementById('hydro-layer'),
+        labels:     document.getElementById('label-layer'),
+        markers:    document.getElementById('marker-layer'),
+        sites:      document.getElementById('site-layer'),
+        locator:    document.getElementById('locator'),
+        locLand:    document.getElementById('loc-land'),
+        locBox:     document.getElementById('loc-box'),
+        picker:     document.getElementById('picker'),
+        pkList:     document.getElementById('pk-list'),
+        reveal:     document.getElementById('reveal'),
+        rvName:     document.getElementById('rv-name'),
+        rvSub:      document.getElementById('rv-sub'),
+        rvAncient:  document.getElementById('rv-ancient'),
+        rvModern:   document.getElementById('rv-modern'),
+        rvDyk:      document.getElementById('rv-dyk'),
+        rvClues:    document.getElementById('rv-clue-list'),
+        bonusQ:     document.getElementById('bonus-q'),
+        bonusRow:   document.getElementById('bonus-row'),
+        bonusInput: document.getElementById('bonus-input'),
+        bonusSubmit:document.getElementById('bonus-submit'),
+        bonusResult:document.getElementById('bonus-result'),
+        summary:    document.getElementById('summary'),
+        smTitle:    document.getElementById('sm-title'),
+        smScore:    document.getElementById('sm-score'),
+        smDetail:   document.getElementById('sm-detail'),
+        groupSel:   document.getElementById('group-select')
+    };
+
+    // Touch mode drives the thumb-reach HUD and larger hit targets. Forced
+    // on with ?touch=1 so the layout can be checked on a desktop browser.
+    const forceTouch = new URLSearchParams(location.search).get('touch') === '1';
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    if (forceTouch || isCoarse) document.documentElement.classList.add('touch-mode');
+
+    const NS = "http://www.w3.org/2000/svg";
+    const W = 975, H = 610;
+    const EARTH_KM = 6371;
+    let projection, geoPath;
+    // The traced basemap GeoJSON, kept after loading even though it is no
+    // longer drawn: the background image replaced its rendering, but the
+    // shapes are still here for era tagging, clue matching and the like.
+    let basemap = { countries: null, rivers: null, lakes: null };
+
+    // Pan / zoom: wheel or buttons to zoom, drag to pan. The same behavior
+    // also drives the automatic zoom-to-place on a correct answer. The scale
+    // ceiling is high because Bethany and Jerusalem are three km apart.
+    const svgSel = d3.select('#map-svg');
+    const gSel = d3.select('#map-container');
+    const zoom = d3.zoom()
+        .scaleExtent([1, MAX_K])
+        .translateExtent([[0, 0], [W, H]])
+        .on('zoom', (event) => {
+            gSel.attr('transform', event.transform);
+            // Keep labels and markers at a legible size however far in we are.
+            scaleWithZoom(event.transform.k);
+        });
+    svgSel.call(zoom).on('dblclick.zoom', null);
+
+    function resetView(ms) {
+        svgSel.transition().duration(ms).call(zoom.transform, d3.zoomIdentity);
+    }
+
+    // Text and markers live inside the zoomed group, so they need an inverse
+    // scale to stay the same size on screen as the map grows underneath them.
+    // Names and markers open large enough to read with the whole Biblical
+    // world on screen, and get larger still as you zoom in. Holding one size
+    // on screen sounds neutral but reads as shrinking: everything else on the
+    // map is growing around it.
+    const LABEL_BOOST = 1.9;   // the opening size, at k = 1
+    const SITE_BOOST  = 2.4;   // markers start bigger: they were pinheads
+    const LABEL_GROWTH = 0.22; // and both keep growing as you go in
+    const SITE_GROWTH  = 0.18;
+    const LABEL_MAX = 3.0;     // ...to a point. Past this a name owns the screen
+    const SITE_MAX  = 3.2;
+
+    function screenScale(k, boost, growth, cap) {
+        // Opens at `boost` and grows from there, because zooming in should
+        // bring you closer to a thing, not further from it. Capped so that at
+        // the zoom it takes to separate Gethsemane from Mount Moriah a region
+        // name is not covering both of them.
+        return Math.min(cap, boost * Math.pow(k, growth));
+    }
+
+    // With 93 names on at once the Levant is a stack of type, so the names
+    // are thinned greedily: walk them in order and drop any that would land
+    // on one already kept. Batch order puts Jerusalem and Bethlehem first, so
+    // the famous places are the ones that survive the thinning.
+    const NAME_SPACING = 52;
+
+    function declutterNames(k) {
+        if (!studyMode) return;
+        const t = d3.zoomTransform(els.svg);
+        const kept = [];
+        els.sites.querySelectorAll('.site').forEach(g => {
+            const name = g.querySelector('.site-name');
+            if (!name) return;
+            const [ax, ay] = g.__anchor;
+            const x = t.applyX(ax), y = t.applyY(ay);
+            const clash = kept.some(p => Math.hypot(p[0] - x, p[1] - y) < NAME_SPACING);
+            name.classList.toggle('crowded', clash);
+            if (!clash) kept.push([x, y]);
+        });
+    }
+
+    // The inset shares the main map's viewBox, so the current view in map
+    // coordinates is just the transform inverted -- no projection maths. The
+    // box is the slab of the world the main SVG is showing, drawn on the
+    // thumbnail. It appears past LOCATOR_FROM, by which point enough of the
+    // surroundings are off-screen that a player can lose their bearings.
+    const LOCATOR_FROM = 2.5;
+
+    function updateLocator(t) {
+        const on = t.k >= LOCATOR_FROM;
+        els.locator.classList.toggle('show', on);
+        if (!on) return;
+        // Invert the transform at the two screen corners of the viewBox to get
+        // the visible rectangle in map units.
+        const x0 = (0 - t.x) / t.k, y0 = (0 - t.y) / t.k;
+        const x1 = (W - t.x) / t.k, y1 = (H - t.y) / t.k;
+        els.locBox.setAttribute('x', x0);
+        els.locBox.setAttribute('y', y0);
+        els.locBox.setAttribute('width',  Math.max(1, x1 - x0));
+        els.locBox.setAttribute('height', Math.max(1, y1 - y0));
+    }
+
+    function scaleWithZoom(k) {
+        const labelScale = screenScale(k, LABEL_BOOST, LABEL_GROWTH, LABEL_MAX) / k;
+        const siteScale  = screenScale(k, SITE_BOOST, SITE_GROWTH, SITE_MAX) / k;
+        els.svg.querySelectorAll('.zoom-fixed').forEach(el => {
+            const [x, y] = el.__anchor;
+            const sc = el.classList.contains('site') ? siteScale : labelScale;
+            el.setAttribute('transform', `translate(${x},${y}) scale(${sc})`);
+        });
+        updateLocator(d3.zoomTransform(els.svg));
+
+        // Era visibility is set as an inline style and still wins over this,
+        // so a modern label never reappears on the ancient map. The small
+        // names arrive a little earlier than they used to, now that they are
+        // legible when they do.
+        const roomy = k >= 2.2;
+        els.labels.querySelectorAll('.sm').forEach(t => {
+            t.classList.toggle('zoom-hidden', !roomy);
+        });
+        declutterNames(k);
+    }
+
+    // ---- Game state -----------------------------------------------------
+    let score = 0, streak = 0;
+    let LOCS = [];           // every location, as loaded
+    let byName = {};
+    let era = 'ancient';
+    let group = 'All';
+    let bag = [];            // remaining places this round, shuffled
+    let roundSize = 0, roundCorrect = 0;
+    let target = null;       // current location record
+    let clueQueue = [];
+    let shown = 0;
+    let locked = false;      // true once the round is answered
+    let studyMode = false;   // browsing the named map; nothing is scored
+
+    // ---- Load data ------------------------------------------------------
+    Promise.all([
+        d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json"),
+        d3.json("data/bible_locations.json"),
+        // Real geography, vendored. See data/basemap/ATTRIBUTION.md.
+        d3.json("data/basemap/rivers.geojson"),
+        d3.json("data/basemap/lakes.geojson"),
+        d3.json("data/basemap/region_labels.json")
+    ]).then(([world, data, rivers, lakes, ntLabels]) => {
+        LOCS = data.locations;
+        for (const l of LOCS) byName[l.place] = l;
+
+        // The base map is a fixed background image now (map-background.jpg,
+        // drawn by #basemap-img), so the projection is fitted to the art rather
+        // than to a clean graticule. The scale and translate below were solved
+        // by least squares from reference points measured on the image itself
+        // -- Rome, Cyprus, the Sea of Galilee, the Dead Sea, the Nile delta --
+        // so projection(lon,lat) lands on the place where the art draws it. In
+        // the image's own pixels the art is very nearly a true Mercator (the
+        // lon and lat scales agree to under 1%), which is why a single Mercator
+        // fits at all. The #basemap-img rect and these numbers come from the
+        // same fit, so the dots stay locked to the coastline at every zoom.
+        //
+        // Known soft spots, from the fit residuals: the crisp anchors (Cyprus,
+        // Galilee, the Dead Sea) land within ~15 px; Rome and Crete are ~2%
+        // (~25 px) out, and the Nile delta is the loosest at ~4% -- the art
+        // draws the delta a touch north of where the projection puts the river
+        // mouth. Adjust SCALE/translate here if a place needs nudging.
+        projection = d3.geoMercator()
+            .scale(1402.5061)
+            .translate([-223.0508, 1204.0256]);
+        geoPath = d3.geoPath(projection);
+
+        // 10m rather than 50m because Patmos -- an actual answer -- is too
+        // small to appear at 50m. Only the features that reach this corner
+        // of the world are kept, so the extra detail costs nothing to draw.
+        const all = topojson.feature(world, world.objects.countries).features;
+        const countries = { type: "FeatureCollection", features: all.filter(f => {
+            const [[x0, y0], [x1, y1]] = d3.geoBounds(f);
+            // The span guard is not an optimisation. France, Norway and the
+            // Maldives carry overseas territories that stretch their bounds
+            // across the globe, and projecting one of those into Mercator
+            // paints a shape over the entire map -- land and sea alike.
+            if (x1 - x0 > 90 || y1 - y0 > 60) return false;
+            return x1 >= 8 && x0 <= 53 && y1 >= 20 && y0 <= 46;
+        }) };
+
+        // Kept for logic that may need the real shapes; no longer rendered.
+        basemap = { countries, rivers, lakes };
+
+        // Still called: drawLand feeds the locator inset's silhouette, and the
+        // other two build their (now CSS-hidden) paths so the DOM still carries
+        // the geometry. Nothing here paints on the main map any more.
+        drawModern(countries);
+        drawLand(countries);
+        drawHydrography(rivers, lakes);
+        drawSites();
+        drawLabels(ntLabels);
+        setEra('ot');
+
+        els.loading.remove();
+        startRound('All');
+    }).catch(err => {
+        els.loading.textContent =
+            "Could not load the map or the location data. The map needs an internet " +
+            "connection, and data/bible_locations.json must sit next to this page.";
+        console.error(err);
+    });
+
+    // ---- Map drawing ----------------------------------------------------
+    function drawModern(countries) {
+        countries.features.forEach((f, i) => {
+            const d = geoPath(f);
+            if (!d) return;
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("d", d);
+            // Tint by index, nudged by name so neighbours rarely collide.
+            const t = (i + (f.properties.name || '').length) % 4;
+            p.setAttribute("class", `country t${t}`);
+            els.modern.appendChild(p);
+        });
+    }
+
+    // The landmass, and nothing else. No regions are painted onto it. The
+    // same path drives the locator inset, which shares this SVG's viewBox.
+    function drawLand(countries) {
+        const d = geoPath(countries);
+        const land = document.createElementNS(NS, "path");
+        land.setAttribute("d", d);
+        land.setAttribute("class", "land");
+        land.setAttribute("pointer-events", "none");
+        els.ancient.appendChild(land);
+        els.locLand.setAttribute("d", d);
+    }
+
+    // Rivers as Natural Earth's centrelines, lakes as AWMC's outlines. Both
+    // are real: the courses that used to be traced by hand here are gone.
+    function drawHydrography(rivers, lakes) {
+        for (const f of lakes.features) {
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("d", geoPath(f));
+            p.setAttribute("class", "water-body");
+            p.setAttribute("pointer-events", "none");
+            els.hydro.appendChild(p);
+        }
+        for (const f of rivers.features) {
+            const d = geoPath(f);
+            if (!d) continue;
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("d", d);
+            p.setAttribute("class", "river");
+            p.setAttribute("pointer-events", "none");
+            els.hydro.appendChild(p);
+        }
+    }
+
+    function drawSites() {
+        for (const loc of LOCS) {
+            for (const at of loc.at) {
+                const xy = projection(at);
+                if (!xy) continue;
+                const g = document.createElementNS(NS, "g");
+                g.setAttribute("class", "site zoom-fixed");
+                g.__anchor = xy;
+
+                const halo = document.createElementNS(NS, "circle");
+                halo.setAttribute("class", "site-halo");
+                halo.setAttribute("r", 5.5);
+                g.appendChild(halo);
+
+                const dot = document.createElementNS(NS, "circle");
+                dot.setAttribute("class", "site-dot");
+                dot.setAttribute("r", 2.6);
+                g.appendChild(dot);
+
+                // Only the middle anchor of a traced feature carries the name,
+                // so the Jordan is labelled once rather than five times.
+                if (at === loc.at[Math.floor(loc.at.length / 2)]) {
+                    const t = document.createElementNS(NS, "text");
+                    t.setAttribute("class", "site-name");
+                    t.setAttribute("y", -6.5);
+                    t.textContent = loc.place;
+                    g.appendChild(t);
+                }
+
+                g.dataset.place = loc.place;
+                els.sites.appendChild(g);
+            }
+        }
+    }
+
+    function markSiteFound(loc) {
+        els.sites.querySelectorAll('.site').forEach(g => {
+            g.classList.toggle('found', g.dataset.place === loc.place);
+        });
+    }
+
+    function clearFoundSites() {
+        els.sites.querySelectorAll('.site.found').forEach(g => g.classList.remove('found'));
+    }
+
+    function drawLabels(ntLabels) {
+        const add = (spec, cls, eraTag) => {
+            const t = labelAt(spec.at || spec.label, spec.text || spec.name,
+                              cls + (spec.sm ? ' sm' : '') + (spec.wide ? ' wide' : ''));
+            if (eraTag) t.dataset.era = eraTag;
+            els.labels.appendChild(t);
+        };
+
+        for (const r of OT_REGIONS)      add(r, 'lbl-region', 'ot');
+        for (const r of ntLabels.labels) add(r, 'lbl-region', 'nt');
+        for (const c of COUNTRY_LABELS)  add(c, 'lbl-country', 'modern');
+        for (const w of SEA_LABELS)      add(w, 'lbl-water');
+
+        scaleWithZoom(1);
+    }
+
+    // Labels are anchored at a projected point and counter-scaled on zoom,
+    // so the text keeps its size while the map grows beneath it.
+    function labelAt(lonlat, text, cls) {
+        const xy = projection(lonlat) || [0, 0];
+        const t = document.createElementNS(NS, "text");
+        t.setAttribute("class", cls + ' zoom-fixed');
+        t.textContent = text;
+        t.__anchor = xy;
+        t.setAttribute("transform", `translate(${xy[0]},${xy[1]})`);
+        return t;
+    }
+
+    function setEra(next) {
+        era = next;
+        // Only the modern map paints its countries in; the two ancient maps
+        // share one landmass and differ purely in which names are written on
+        // it, which is the honest difference between them.
+        els.modern.style.display  = era === 'modern' ? '' : 'none';
+        els.ancient.style.display = era === 'modern' ? 'none' : '';
+        els.labels.querySelectorAll('text[data-era]').forEach(t => {
+            t.style.display = t.dataset.era === era ? '' : 'none';
+        });
+        for (const [id, key] of [['era-ot', 'ot'], ['era-nt', 'nt'], ['era-modern', 'modern']]) {
+            const b = document.getElementById(id);
+            b.classList.toggle('on', era === key);
+            b.setAttribute('aria-pressed', String(era === key));
+        }
+    }
+
+    // ---- Guess geometry --------------------------------------------------
+    function kmBetween(a, b) {
+        return d3.geoDistance(a, b) * EARTH_KM;
+    }
+
+    // Distance to the nearest of a location's anchors: a city has one, but a
+    // river or a sea is traced with several so a click anywhere along the
+    // feature counts.
+    function kmToLocation(lonlat, loc) {
+        let best = Infinity;
+        for (const a of loc.at) best = Math.min(best, kmBetween(lonlat, a));
+        return best;
+    }
+
+    function rankByDistance(lonlat) {
+        return LOCS
+            .map(l => ({ loc: l, km: kmToLocation(lonlat, l) }))
+            .sort((a, b) => a.km - b.km);
+    }
+
+    // Map units per km where the click landed. Measured rather than assumed:
+    // Mercator stretches with latitude, so Patmos and Ur are not to the same
+    // scale on screen.
+    function unitsPerKmAt(lonlat) {
+        const off = [lonlat[0] + 0.02, lonlat[1]];
+        const a = projection(lonlat), b = projection(off);
+        if (!a || !b) return 1;
+        const km = kmBetween(lonlat, off);
+        return km > 0 ? Math.hypot(b[0] - a[0], b[1] - a[1]) / km : 1;
+    }
+
+    // ---- Selection -------------------------------------------------------
+    // Pointer Events on the SVG itself rather than per-shape clicks, so
+    // mouse, pen and touch all take one code path and a pan/pinch gesture
+    // that ends over the map never counts as an answer.
+    let tap = null;
+    els.svg.addEventListener('pointerdown', (e) => {
+        if (!e.isPrimary) { tap = null; return; }   // a second finger is a pinch
+        tap = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+    });
+    els.svg.addEventListener('pointerup', (e) => {
+        if (!tap || e.pointerId !== tap.id) return;
+        const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y);
+        const elapsed = performance.now() - tap.t;
+        const slop = e.pointerType === 'mouse' ? 5 : 14;   // fingers wobble
+        tap = null;
+        if (moved > slop || elapsed > 700) return;
+
+        // d3.pointer against the zoomed group gives map coordinates directly,
+        // so the click reads the same whatever the current transform is.
+        const [mx, my] = d3.pointer(e, els.markers);
+        const lonlat = projection.invert([mx, my]);
+        if (lonlat) handleGuess(lonlat, [mx, my]);
+    });
+    els.svg.addEventListener('pointercancel', () => { tap = null; });
+
+    // ---- Round flow -----------------------------------------------------
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function placesIn(g) {
+        return LOCS.filter(l => g === 'All' || l.group === g).map(l => l.place);
+    }
+
+    function startRound(g) {
+        group = g;
+        els.groupSel.value = g;
+        els.summary.classList.remove('show');
+        roundCorrect = 0;
+        bag = shuffle(placesIn(g));
+        roundSize = bag.length;
+        nextPlace();
+    }
+
+    function nextPlace() {
+        locked = false;
+        els.reveal.classList.remove('show');
+        els.markers.innerHTML = '';
+        clearFoundSites();
+        closePicker();
+        setNote('');
+        resetView(600);
+
+        if (bag.length === 0) {
+            if (group === 'All') {
+                bag = shuffle(placesIn('All'));   // endless play, no repeats
+            } else {
+                return endRound();
+            }
+        }
+
+        target = byName[bag.pop()];
+        // Show the map the clue belongs to. A player who has deliberately
+        // switched to the modern map is left on it.
+        if (era !== 'modern' && (target.era === 'ot' || target.era === 'nt')) {
+            setEra(target.era);
+        }
+        // The batch orders its clues hardest first, which is exactly the
+        // order they should be handed out in.
+        clueQueue = target.clues.slice();
+        shown = 0;
+        els.clues.innerHTML = '';
+        revealClue();
+        updateProgress();
+    }
+
+    function revealClue() {
+        if (shown >= clueQueue.length) return;
+        const li = document.createElement('li');
+        li.textContent = clueQueue[shown++];
+        els.clues.appendChild(li);
+        els.clues.scrollTop = els.clues.scrollHeight;
+        syncClueUI();
+    }
+
+    function syncClueUI() {
+        const more = shown < clueQueue.length;
+        document.querySelectorAll('.js-next-clue').forEach(b => {
+            b.disabled = !more || locked;
+            b.textContent = more ? 'Next clue ↓' : 'No clues left';
+        });
+        els.clueTitle.textContent = `Deduction clues — ${shown} of ${clueQueue.length}`;
+    }
+
+    function updateProgress() {
+        if (group === 'All') {
+            els.progress.textContent = '';
+        } else {
+            const done = roundSize - bag.length;
+            els.progress.textContent = `${group} · ${done} / ${roundSize}`;
+        }
+    }
+
+    function setNote(text, kind) {
+        els.missNote.textContent = text;
+        els.missNote.classList.toggle('show', !!text);
+        els.missNote.classList.toggle('info', kind === 'info');
+    }
+
+    // ---- Ambiguity picker ----------------------------------------------
+    function openPicker(cluster, lonlat, xy) {
+        els.pkList.innerHTML = '';
+        for (const loc of cluster) {
+            const b = document.createElement('button');
+            b.textContent = loc.place;
+            b.addEventListener('click', () => {
+                closePicker();
+                judge(loc, lonlat, xy);
+            });
+            els.pkList.appendChild(b);
+        }
+        setNote('');
+        els.picker.classList.add('show');
+    }
+
+    function closePicker() {
+        els.picker.classList.remove('show');
+    }
+
+    // ---- Guessing -------------------------------------------------------
+    // A click is resolved to a single place first, and only then judged. The
+    // resolving step never looks at the answer, so it gives nothing away:
+    // it behaves identically whether or not the target is one of the places
+    // under the cursor.
+    function handleGuess(lonlat, xy) {
+        if (locked || studyMode) return;
+        closePicker();
+
+        const k = d3.zoomTransform(els.svg).k;
+        const upk = unitsPerKmAt(lonlat);
+        const slopKm = SLOP_PX / (upk * k);   // what the click can resolve
+
+        const ranked = rankByDistance(lonlat);
+        const first = ranked[0], second = ranked[1];
+
+        // Nothing plausible under the click: judged as an ordinary miss.
+        if (first.km > Math.max(first.loc.radiusKm, slopKm)) {
+            return judge(null, lonlat, xy);
+        }
+
+        if (!second) return judge(first.loc, lonlat, xy);
+
+        // One place is clearly meant -- either it beats the runner-up by a
+        // wide margin, or the two are further apart than this click could
+        // have distinguished anyway. Neither test means anything when the
+        // two sit on the same spot: a ratio against a zero distance always
+        // looks decisive, which would have quietly answered Horeb as Sinai.
+        const sameSpot = closestPairKm([first.loc, second.loc]) <= SAME_SPOT_KM;
+        const clear = !sameSpot && (
+               second.km >= first.km * AMBIG_RATIO
+            || second.km - first.km >= slopKm);
+        if (clear) return judge(first.loc, lonlat, xy);
+
+        disambiguate(ranked, lonlat, xy, k, upk, slopKm);
+    }
+
+    // Zoom in on the two places actually in contention, one step at a time,
+    // so a click over the Judean hills drills down rather than teleporting
+    // to the scale that separates Gethsemane from Mount Moriah. When no zoom
+    // could ever separate them, ask outright.
+    function disambiguate(ranked, lonlat, xy, k, upk, slopKm) {
+        const gapKm = closestPairKm([ranked[0].loc, ranked[1].loc]);
+        const needed = gapKm > SAME_SPOT_KM ? SEPARATION_PX / (upk * gapKm) : Infinity;
+        const next = Math.min(needed, k * ZOOM_STEP, MAX_K);
+
+        if (gapKm > SAME_SPOT_KM && next > k * 1.15) {
+            zoomToPoint(lonlat, next);
+            setNote('Several places sit close together here — zoomed in so you can pick one.', 'info');
+            return;
+        }
+
+        // Either they share a summit, or the map is already as close as it
+        // goes. Name the candidates and let the player choose -- but only
+        // the ones that are genuinely inseparable. Judged at full zoom, not
+        // at the current one, so the list never pads itself out with a place
+        // 60 km away that simply looked near at k=1.
+        const unresolvableKm = Math.max(SAME_SPOT_KM, SEPARATION_PX / (upk * MAX_K));
+        const cluster = ranked
+            .filter(r => r.km <= ranked[0].km + unresolvableKm)
+            .map(r => r.loc);
+        openPicker(cluster.length > 1 ? cluster : [ranked[0].loc, ranked[1].loc], lonlat, xy);
+    }
+
+    function closestPairKm(list) {
+        let best = Infinity;
+        for (let i = 0; i < list.length; i++)
+            for (let j = i + 1; j < list.length; j++)
+                for (const p of list[i].at)
+                    for (const q of list[j].at)
+                        best = Math.min(best, kmBetween(p, q));
+        return best;
+    }
+
+    // The click has settled on `cand` (or on nothing at all); score it.
+    function judge(cand, lonlat, xy) {
+        const km = kmToLocation(lonlat, target);
+
+        if (cand === target && km <= target.radiusKm) {
+            locked = true;
+            score += SCORE_CORRECT;
+            streak += 1;
+            roundCorrect += 1;
+            els.score.textContent = score;
+            els.streak.textContent = streak;
+            setNote('');
+            markSiteFound(target);
+            dropPin(target, true);
+            syncClueUI();
+            zoomToTarget();
+            setTimeout(() => openReveal(target, 'found'), 700);
+        } else {
+            streak = 0;
+            els.streak.textContent = streak;
+            if (xy) markMiss(xy);
+            // Distance only. A bearing, or the name of whatever was nearer,
+            // would give the answer away.
+            // Metres below a kilometre: with Bethphage 450 m from the Mount
+            // of Olives, "0 km off" is the wrong way to say "very close".
+            setNote(km < 1 ? `So close — ${Math.round(km * 1000)} m off.`
+                  : km < 40 ? `So close — ${Math.round(km)} km off.`
+                            : `${formatKm(km)} away.`, 'miss');
+            revealClue();   // a miss earns the next clue
+        }
+    }
+
+    function zoomToPoint(lonlat, k) {
+        const p = projection(lonlat);
+        if (!p) return;
+        const t = d3.zoomIdentity.translate(W / 2, H / 2).scale(k).translate(-p[0], -p[1]);
+        svgSel.transition().duration(650).call(zoom.transform, t);
+    }
+
+    function formatKm(km) {
+        return km >= 400 ? `${Math.round(km / 50) * 50} km`
+             : km >= 100 ? `${Math.round(km / 10) * 10} km`
+                         : `${Math.round(km)} km`;
+    }
+
+    function markMiss(xy) {
+        const g = document.createElementNS(NS, "g");
+        g.setAttribute("class", "zoom-fixed");
+        g.__anchor = xy;
+        for (const [x1, y1, x2, y2] of [[-6, -6, 6, 6], [-6, 6, 6, -6]]) {
+            const l = document.createElementNS(NS, "line");
+            l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+            l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+            l.setAttribute("class", "guess-x");
+            g.appendChild(l);
+        }
+        els.markers.appendChild(g);
+        scaleWithZoom(d3.zoomTransform(els.svg).k);
+        setTimeout(() => g.remove(), 1700);
+    }
+
+    function dropPin(loc, animate) {
+        // A traced feature gets its pin at the middle anchor, which reads
+        // better than an endpoint for a river or a coastline.
+        const anchor = loc.at[Math.floor(loc.at.length / 2)];
+        const xy = projection(anchor);
+        if (!xy) return;
+
+        const g = document.createElementNS(NS, "g");
+        g.setAttribute("class", "pin zoom-fixed");
+        g.__anchor = xy;
+
+        if (animate) {
+            const halo = document.createElementNS(NS, "circle");
+            halo.setAttribute("class", "halo");
+            halo.setAttribute("r", 7);
+            g.appendChild(halo);
+        }
+        const dot = document.createElementNS(NS, "circle");
+        dot.setAttribute("class", "dot");
+        dot.setAttribute("r", 4.5);
+        g.appendChild(dot);
+
+        const t = document.createElementNS(NS, "text");
+        t.setAttribute("y", -9);
+        t.textContent = loc.place;
+        g.appendChild(t);
+
+        els.markers.appendChild(g);
+        scaleWithZoom(d3.zoomTransform(els.svg).k);
+    }
+
+    // Frame the answer: tight on a city, wider on a feature that is traced
+    // across several anchors.
+    function zoomToTarget() {
+        const pts = target.at.map(a => projection(a)).filter(Boolean);
+        if (!pts.length) return;
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+        const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        const spanX = Math.max(Math.max(...xs) - Math.min(...xs), 12);
+        const spanY = Math.max(Math.max(...ys) - Math.min(...ys), 12);
+        const k = Math.max(1, Math.min(14, 0.42 * Math.min(W / spanX, H / spanY)));
+        const t = d3.zoomIdentity.translate(W / 2, H / 2).scale(k).translate(-cx, -cy);
+        svgSel.transition().duration(900).call(zoom.transform, t);
+    }
+
+    // Study mode is the labelled atlas. It abandons the round on the way in
+    // -- otherwise it would be a way to read the current answer off the map --
+    // and deals a fresh place on the way out, so nothing is learned about the
+    // place you were on.
+    function toggleStudy() {
+        studyMode = !studyMode;
+        document.documentElement.classList.toggle('study', studyMode);
+        document.querySelectorAll('.js-study').forEach(b => {
+            b.classList.toggle('on', studyMode);
+            b.setAttribute('aria-pressed', String(studyMode));
+            // Label stays put: a button that changes width re-flows the header
+            // every time it is pressed. The lit state says it is on.
+            b.textContent = 'Study map';
+        });
+
+        if (studyMode) {
+            locked = true;                       // no guessing while browsing
+            closePicker();
+            els.reveal.classList.remove('show');
+            els.summary.classList.remove('show');
+            setNote('Every place named. Nothing is scored — press again to play.', 'info');
+            els.clues.innerHTML = '';
+            els.clueTitle.textContent = 'Study map';
+            els.progress.textContent = '';
+            document.querySelectorAll('.js-next-clue, .js-skip').forEach(b => b.disabled = true);
+            declutterNames(d3.zoomTransform(els.svg).k);
+        } else {
+            document.querySelectorAll('.js-skip').forEach(b => b.disabled = false);
+            setNote('');
+            nextPlace();                         // a fresh place, unspoiled
+        }
+    }
+
+    function skipRound() {
+        if (locked) return;
+        locked = true;
+        streak = 0;
+        els.streak.textContent = 0;
+        closePicker();
+        setNote('');
+        // Show where it actually was before moving on -- a skipped place the
+        // player never sees on the map teaches nothing.
+        markSiteFound(target);
+        dropPin(target, false);
+        syncClueUI();
+        zoomToTarget();
+        setTimeout(() => openReveal(target, 'skipped'), 700);
+    }
+
+    // ---- Reveal card ----------------------------------------------------
+    let bonusOpen = false;
+
+    function openReveal(loc, how) {
+        els.rvName.textContent = loc.place;
+        els.rvSub.textContent = how === 'found' ? 'Found it' : 'Skipped';
+
+        els.rvAncient.textContent = loc.ancientRegion;
+        els.rvModern.textContent = loc.modernCountry;
+
+        els.rvDyk.textContent = loc.didYouKnow;
+
+        // The card covers the clue list, so carry the full set into it --
+        // including clues the player never needed to see.
+        els.rvClues.innerHTML = '';
+        for (const c of clueQueue) {
+            const li = document.createElement('li');
+            li.textContent = c;
+            els.rvClues.appendChild(li);
+        }
+
+        // The bonus only makes sense when the place was actually found, and
+        // the answer must not already be sitting on the card.
+        bonusOpen = how === 'found';
+        document.getElementById('bonus-block').style.display = bonusOpen ? '' : 'none';
+        els.rvModern.textContent = bonusOpen ? '—' : loc.modernCountry;
+        if (bonusOpen) {
+            els.bonusQ.textContent =
+                `Bonus: which country is ${loc.place} in today? +${SCORE_BONUS}`;
+            els.bonusRow.style.display = '';
+            els.bonusInput.value = '';
+            els.bonusInput.disabled = false;
+            els.bonusSubmit.disabled = false;
+            els.bonusResult.textContent = '';
+            els.bonusResult.className = '';
+        }
+
+        els.reveal.classList.add('show');
+        // Don't steal focus on touch -- it would throw up the keyboard over
+        // the card the player is still reading.
+        if (bonusOpen && !document.documentElement.classList.contains('touch-mode')) {
+            setTimeout(() => els.bonusInput.focus(), 60);
+        }
+    }
+
+    // Forgiving comparison: case, accents and punctuation ignored, plus a
+    // one-character typo allowance on longer names.
+    function normalize(s) {
+        return s.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/\bthe\b/g, '')
+            .replace(/[^a-z0-9]/g, '');
+    }
+
+    function editDistance(a, b) {
+        if (Math.abs(a.length - b.length) > 1) return 2;   // only care about <= 1
+        let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+        for (let i = 1; i <= a.length; i++) {
+            const cur = [i];
+            for (let j = 1; j <= b.length; j++) {
+                cur[j] = Math.min(
+                    prev[j] + 1,
+                    cur[j - 1] + 1,
+                    prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+                );
+            }
+            prev = cur;
+        }
+        return prev[b.length];
+    }
+
+    // "Israel/Palestinian Territories" and "Egypt" both come from the batch
+    // file, so a slash means either half is a right answer -- as is the
+    // shorter "Palestine" for the territories.
+    function countryMatches(guess, actual) {
+        const g = normalize(guess);
+        if (!g) return false;
+        const parts = actual.split('/').map(s => s.trim());
+        for (const p of parts) {
+            const a = normalize(p);
+            if (g === a) return true;
+            if (a.length >= 6 && editDistance(g, a) <= 1) return true;
+            if (a.startsWith('palestin') && g.startsWith('palestin')) return true;
+        }
+        return false;
+    }
+
+    function submitBonus() {
+        if (!bonusOpen || els.bonusInput.disabled) return;
+        const ok = countryMatches(els.bonusInput.value, target.modernCountry);
+        if (ok) {
+            score += SCORE_BONUS;
+            els.score.textContent = score;
+            els.bonusResult.textContent = `Correct — ${target.modernCountry}. +${SCORE_BONUS}`;
+            els.bonusResult.className = 'right';
+        } else {
+            els.bonusResult.textContent = `It's in ${target.modernCountry}.`;
+            els.bonusResult.className = 'miss';
+        }
+        els.rvModern.textContent = target.modernCountry;
+        els.bonusInput.disabled = true;
+        els.bonusSubmit.disabled = true;
+        els.bonusRow.style.display = 'none';
+    }
+
+    function endRound() {
+        els.smTitle.textContent = group;
+        els.smScore.textContent = `${roundCorrect} / ${roundSize}`;
+        els.smDetail.textContent =
+            `Places found on the first pass. Total score: ${score}.`;
+        els.summary.classList.add('show');
+    }
+
+    // ---- Controls -------------------------------------------------------
+    const zoomBy = (k) => svgSel.transition().duration(250).call(zoom.scaleBy, k);
+
+    document.querySelectorAll('.js-skip').forEach(b => b.addEventListener('click', skipRound));
+    document.querySelectorAll('.js-study').forEach(b => b.addEventListener('click', toggleStudy));
+    document.querySelectorAll('.js-next-clue').forEach(b => b.addEventListener('click', () => {
+        if (!locked) revealClue();
+    }));
+
+    document.getElementById('era-ot').addEventListener('click', () => setEra('ot'));
+    document.getElementById('era-nt').addEventListener('click', () => setEra('nt'));
+    document.getElementById('era-modern').addEventListener('click', () => setEra('modern'));
+
+    els.groupSel.addEventListener('change', () => startRound(els.groupSel.value));
+    document.getElementById('rv-next').addEventListener('click', nextPlace);
+    document.getElementById('rv-close').addEventListener('click', nextPlace);
+    // Tapping the dimmed backdrop dismisses, but a tap inside the card must not.
+    els.reveal.addEventListener('click', (e) => {
+        if (e.target === els.reveal) nextPlace();
+    });
+    document.getElementById('sm-again').addEventListener('click', () => startRound(group));
+    document.getElementById('sm-all').addEventListener('click', () => startRound('All'));
+
+    els.bonusSubmit.addEventListener('click', submitBonus);
+    els.bonusInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); submitBonus(); }
+        e.stopPropagation();   // typing must not trigger map shortcuts
+    });
+
+    document.getElementById('pk-cancel').addEventListener('click', closePicker);
+
+    document.getElementById('zc-in').addEventListener('click', () => zoomBy(1.8));
+    document.getElementById('zc-out').addEventListener('click', () => zoomBy(1 / 1.8));
+    document.getElementById('zc-reset').addEventListener('click', () => resetView(400));
+
+    // Desktop keyboard shortcuts.
+    document.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key === 'Escape') {
+            if (els.reveal.classList.contains('show')) { nextPlace(); e.preventDefault(); }
+            return;
+        }
+        if (e.target === els.bonusInput) return;
+        switch (e.key) {
+            case '+': case '=': zoomBy(1.8); break;
+            case '-': case '_': zoomBy(1 / 1.8); break;
+            case '0': resetView(400); break;
+            case 's': case 'S': skipRound(); break;
+            case 'm': case 'M': toggleStudy(); break;
+            case 'e': case 'E': setEra({ ot: 'nt', nt: 'modern', modern: 'ot' }[era]); break;
+            case 'n': case 'N':
+                if (els.reveal.classList.contains('show')) nextPlace();
+                else if (!locked) revealClue();
+                break;
+            default: return;
+        }
+        e.preventDefault();
+    });
+    </script>
+
+<script>
+(function () {
+  var overlay = document.getElementById('sq-open');
+  var cont = document.getElementById('sq-continue');
+  var btn = document.getElementById('sq-play');
+  var stage = overlay && overlay.querySelector('.sq-stage');
+  if (!overlay) return;
+  function goHowto(e) {
+    if (overlay.classList.contains('is-howto') || overlay.classList.contains('is-off')) return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-howto');
+  }
+  function start(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-off');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (typeof gameState !== 'undefined' && gameState === 'TITLE') {
+      gameState = 'PLAYING';
+    }
+    document.dispatchEvent(new CustomEvent('sq-play'));
+  }
+  if (cont) cont.addEventListener('click', goHowto);
+  if (stage) stage.addEventListener('click', goHowto);
+  if (btn) btn.addEventListener('click', start);
+  window.addEventListener('keydown', function (e) {
+    if (overlay.classList.contains('is-off')) return;
+    if (e.code === 'Enter' || e.code === 'Space') {
+      if (overlay.classList.contains('is-howto')) start(e);
+      else goHowto(e);
+    }
+  }, true);
+})();
+</script>
+
+</body>
+</html>

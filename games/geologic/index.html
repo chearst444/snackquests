@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <title>GeoLogic - The Smart World Map Game</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --wrong: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
+
+        /* Mobile locks: no page scroll, no pinch-zoom of the document, no
+           pull-to-refresh, no text selection or long-press callout. Gesture
+           handling belongs to the map (d3-zoom), not the browser. */
+        html, body, svg, canvas {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: none;
+        }
+
+        html, body {
+            overflow: hidden;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 14px 28px;
+            padding-top: max(14px, env(safe-area-inset-top));
+            padding-left: max(28px, env(safe-area-inset-left));
+            padding-right: max(28px, env(safe-area-inset-right));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+        }
+        h1 span { color: var(--text-muted); font-weight: 400; font-size: 0.9rem; }
+
+        .stats { display: flex; gap: 10px; align-items: center; }
+
+        .pill {
+            font-size: 1rem;
+            font-weight: bold;
+            background: rgba(255,255,255,0.06);
+            padding: 6px 15px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        button {
+            font: inherit;
+            font-weight: 600;
+            color: var(--text-main);
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--accent);
+            padding: 7px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            touch-action: manipulation;
+            min-height: 40px;
+        }
+        /* Hover effects only where a real hover pointer exists, so styles
+           don't get stuck after a tap on touch devices. */
+        @media (hover: hover) {
+            button:hover { background: rgba(56, 189, 248, 0.3); }
+        }
+        button:active { background: rgba(56, 189, 248, 0.35); }
+
+        #game-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        #clue-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+            border-left: 5px solid var(--accent);
+            z-index: 5;
+        }
+
+        #clue-card h2 {
+            margin: 0 0 8px 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        ol {
+            margin: 0;
+            padding-left: 22px;
+            /* The clue list is the one place vertical scrolling is allowed. */
+            overflow-y: auto;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            max-height: 34vh;
+        }
+        li { margin-bottom: 6px; font-size: 1.1rem; line-height: 1.35; }
+
+        #map-viewport {
+            width: 100%;
+            flex: 1;
+            background: radial-gradient(circle at 50% 40%, #16233f, #0b1220);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+            min-height: 0;
+        }
+
+        svg { width: 100%; height: 100%; display: block; cursor: grab; }
+        svg:active { cursor: grabbing; }
+
+        #zoom-controls {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 50;
+        }
+        #zoom-controls button {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            font-size: 1.3rem;
+            line-height: 1;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .country {
+            fill: #334155;
+            stroke: #0f172a;
+            stroke-width: 0.4;
+            cursor: pointer;
+            transition: fill 0.2s;
+            vector-effect: non-scaling-stroke;
+        }
+        @media (hover: hover) {
+            .country:hover { fill: #64748b; }
+        }
+
+        /* Continent tints applied to quiz-eligible countries */
+        .country[data-continent="North America"] { fill: #3b6978; }
+        .country[data-continent="South America"] { fill: #2a9d8f; }
+        .country[data-continent="Europe"]        { fill: #b08968; }
+        .country[data-continent="Africa"]        { fill: #cb904d; }
+        .country[data-continent="Asia"]          { fill: #c05746; }
+        .country[data-continent="Oceania"]       { fill: #6247aa; }
+        @media (hover: hover) {
+            .country[data-continent="North America"]:hover { fill: #4d8296; }
+            .country[data-continent="South America"]:hover { fill: #36c2b1; }
+            .country[data-continent="Europe"]:hover        { fill: #c9a184; }
+            .country[data-continent="Africa"]:hover        { fill: #e0a75f; }
+            .country[data-continent="Asia"]:hover          { fill: #d66b5a; }
+            .country[data-continent="Oceania"]:hover       { fill: #7a5cc9; }
+        }
+
+        /* Climate reference overlay */
+        .clim-line {
+            fill: none;
+            stroke: rgba(248, 250, 252, 0.35);
+            stroke-width: 0.7;
+            stroke-dasharray: 3 3;
+            vector-effect: non-scaling-stroke;
+        }
+        .clim-line.equator {
+            stroke: rgba(250, 204, 21, 0.85);
+            stroke-width: 1.1;
+            stroke-dasharray: none;
+        }
+        .clim-label {
+            fill: rgba(248, 250, 252, 0.65);
+            font-size: 7px;
+            font-weight: 600;
+            font-family: system-ui, sans-serif;
+        }
+
+        .country.correct { fill: var(--success) !important; }
+        .country.wrong   { animation: flash-red 0.45s ease-out 2; }
+
+        @keyframes flash-red {
+            0%, 100% { fill: var(--wrong); }
+            50%      { fill: #7f1d1d; }
+        }
+
+        #feedback-overlay {
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(15, 23, 42, 0.94);
+            padding: 16px 32px;
+            border-radius: 14px;
+            text-align: center;
+            border: 2px solid var(--success);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s, transform 0.4s;
+            z-index: 100;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+        }
+        #feedback-overlay.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #feedback-overlay h3 { margin: 0 0 4px 0; font-size: 1.8rem; color: var(--success); }
+        #feedback-overlay p { margin: 0; font-size: 1.1rem; color: var(--text-main); }
+
+        #loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* ---- Touch HUD ------------------------------------------------
+           Shown only on coarse-pointer devices, or with ?touch=1 in the URL
+           (html.touch-mode is set by script). It moves the round actions
+           down to thumb reach and frees header space on narrow screens. */
+        #touch-hud {
+            display: none;
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            z-index: 50;
+        }
+        #touch-hud button {
+            min-height: 48px;
+            min-width: 96px;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(2px);
+        }
+
+        html.touch-mode #touch-hud { display: flex; }
+        html.touch-mode header .stats > button { display: none; }
+        html.touch-mode #zoom-controls button { width: 48px; height: 48px; font-size: 1.5rem; }
+
+        /* ---- Responsive layout ---------------------------------------- */
+        @media (max-width: 720px) {
+            header {
+                padding: 10px 12px;
+                padding-top: max(10px, env(safe-area-inset-top));
+                padding-left: max(12px, env(safe-area-inset-left));
+                padding-right: max(12px, env(safe-area-inset-right));
+            }
+            h1 { font-size: 1.15rem; }
+            h1 span { display: none; }
+            .stats { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+            .pill { font-size: 0.85rem; padding: 5px 11px; }
+            button { padding: 6px 12px; font-size: 0.9rem; }
+
+            #game-container {
+                padding: 10px;
+                padding-left: max(10px, env(safe-area-inset-left));
+                padding-right: max(10px, env(safe-area-inset-right));
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+                gap: 10px;
+            }
+            #clue-card { padding: 12px 14px; border-left-width: 4px; }
+            li { font-size: 0.98rem; margin-bottom: 5px; }
+            ol { max-height: 30vh; padding-left: 18px; }
+
+            #feedback-overlay { padding: 12px 20px; max-width: 88%; }
+            #feedback-overlay h3 { font-size: 1.3rem; }
+            #feedback-overlay p { font-size: 0.98rem; }
+        }
+
+        /* Short/landscape phones: give the map as much height as possible. */
+        @media (max-height: 560px) and (orientation: landscape) {
+            header { padding-top: 6px; padding-bottom: 6px; }
+            h1 { font-size: 1rem; }
+            #game-container { padding: 8px; gap: 8px; }
+            #clue-card { padding: 8px 12px; }
+            #clue-card h2 { margin-bottom: 4px; }
+            ol { max-height: 22vh; }
+            li { font-size: 0.9rem; margin-bottom: 3px; }
+        }
+    </style>
+<style>
+
+        #sq-open {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        #sq-open.is-off { display: none !important; }
+        #sq-open .sq-stage {
+            position: relative;
+            width: min(100%, 1400px);
+            max-height: 100%;
+            max-height: 100dvh;
+        }
+        #sq-open .sq-art {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 100dvh;
+            object-fit: contain;
+        }
+        #sq-open.pixel .sq-art {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #sq-open .sq-play {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: none;
+            border: 0;
+            padding: 12px 16px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-play img {
+            display: block;
+            width: 276px;
+            height: 87px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            image-rendering: -moz-crisp-edges;
+            pointer-events: none;
+        }
+        @media (max-width: 640px) {
+            #sq-open .sq-play img { width: 184px; height: 58px; }
+        }
+
+        #sq-open .sq-continue {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(16px, 4vw, 22px);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 12px 22px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-howto {
+            display: none;
+            width: min(100%, 560px);
+            max-height: 92dvh;
+            overflow: auto;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        #sq-open.is-howto .sq-stage { display: none; }
+        #sq-open.is-howto .sq-howto { display: block; }
+        #sq-open .sq-howto-card {
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            padding: 22px 20px 16px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #sq-open .sq-howto-card h2 {
+            margin: 0 0 12px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(22px, 5vw, 30px);
+            line-height: 1.2;
+        }
+        #sq-open .sq-howto-card p {
+            margin: 0 0 10px;
+            font-size: clamp(15px, 3.6vw, 18px);
+            line-height: 1.45;
+            text-align: left;
+        }
+        #sq-open.is-howto .sq-play {
+            position: static;
+            transform: none;
+            margin: 10px auto 0;
+            display: inline-block;
+        }
+
+        #sq-open .sq-studio {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #fff6eb;
+            background: rgba(26, 18, 12, 0.78);
+            border: 2px solid #e8a838;
+            padding: 4px 8px 4px 4px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #sq-open .sq-studio svg {
+            display: block;
+            width: 22px;
+            height: 22px;
+            flex: none;
+        }
+
+
+
+</style>
+</head>
+<body>
+<div id="sq-open" role="dialog" aria-modal="true" aria-label="Geologic">
+    <a class="sq-studio" href="https://snackquests.com" id="sq-studio">
+    <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true" focusable="false">
+      <ellipse cx="32" cy="38" rx="20" ry="14" fill="#E8A838"/>
+      <ellipse cx="32" cy="34" rx="18" ry="11" fill="#F4B942"/>
+      <circle cx="24" cy="34" r="2.2" fill="#3B2A1A"/>
+      <circle cx="40" cy="34" r="2.2" fill="#3B2A1A"/>
+      <path d="M26 40c2 2.4 10 2.4 12 0" fill="none" stroke="#3B2A1A" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Snack Quests</span>
+  </a>
+<div class="sq-stage" id="sq-art-screen">
+    <img class="sq-art" src="assets/opening.jpg" alt="Geologic">
+    <button type="button" class="sq-continue" id="sq-continue">Tap to continue</button>
+  </div>
+  <div class="sq-howto" id="sq-howto">
+    <div class="sq-howto-card">
+      <h2>How to play</h2>
+      <p>Read the clues. Find the country on the map.</p>
+      <button type="button" class="sq-play" id="sq-play" aria-label="Play">
+        <img src="assets/btn_play.png" alt="PLAY" width="92" height="29">
+      </button>
+    </div>
+  </div>
+</div>
+
+
+    <header>
+        <h1>GeoLogic <span>&mdash; deduce &amp; click the country</span></h1>
+        <div class="stats">
+            <div class="pill">Score: <span id="score">0</span></div>
+            <div class="pill">Streak: <span id="streak">0</span></div>
+            <button class="js-climate">Climate: On</button>
+            <button class="js-skip">Skip &rarr;</button>
+        </div>
+    </header>
+
+    <div id="game-container">
+        <div id="clue-card">
+            <h2>What country is it?</h2>
+            <ol id="clue-list"><li>Loading world data&hellip;</li></ol>
+        </div>
+
+        <div id="map-viewport">
+            <div id="loading">Loading world map&hellip;</div>
+            <div id="feedback-overlay">
+                <h3 id="fb-name"></h3>
+                <p id="fb-capital"></p>
+            </div>
+            <svg id="map-svg" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet">
+                <g id="map-container"></g>
+            </svg>
+            <div id="zoom-controls">
+                <button id="zc-in" title="Zoom in" aria-label="Zoom in">+</button>
+                <button id="zc-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
+                <button id="zc-reset" title="Reset view" aria-label="Reset view">&#10530;</button>
+            </div>
+            <div id="touch-hud">
+                <button class="js-climate">Climate: On</button>
+                <button class="js-skip">Skip &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script>
+    // Capital + continent lookup, keyed by the country name used in the
+    // Natural Earth (world-atlas) data. Aliases cover naming variations so
+    // countries still qualify as quiz targets across dataset versions.
+    const DATA = {
+        // North America
+        "United States of America": ["Washington, D.C.", "North America"],
+        "Canada": ["Ottawa", "North America"],
+        "Mexico": ["Mexico City", "North America"],
+        "Guatemala": ["Guatemala City", "North America"],
+        "Cuba": ["Havana", "North America"],
+        "Honduras": ["Tegucigalpa", "North America"],
+        "Nicaragua": ["Managua", "North America"],
+        "Costa Rica": ["San José", "North America"],
+        "Panama": ["Panama City", "North America"],
+        "Dominican Rep.": ["Santo Domingo", "North America"],
+        "Haiti": ["Port-au-Prince", "North America"],
+        "Belize": ["Belmopan", "North America"],
+        // South America
+        "Brazil": ["Brasília", "South America"],
+        "Argentina": ["Buenos Aires", "South America"],
+        "Chile": ["Santiago", "South America"],
+        "Peru": ["Lima", "South America"],
+        "Colombia": ["Bogotá", "South America"],
+        "Venezuela": ["Caracas", "South America"],
+        "Ecuador": ["Quito", "South America"],
+        "Bolivia": ["Sucre", "South America"],
+        "Paraguay": ["Asunción", "South America"],
+        "Uruguay": ["Montevideo", "South America"],
+        "Guyana": ["Georgetown", "South America"],
+        "Suriname": ["Paramaribo", "South America"],
+        // Europe
+        "United Kingdom": ["London", "Europe"],
+        "France": ["Paris", "Europe"],
+        "Germany": ["Berlin", "Europe"],
+        "Spain": ["Madrid", "Europe"],
+        "Portugal": ["Lisbon", "Europe"],
+        "Italy": ["Rome", "Europe"],
+        "Ireland": ["Dublin", "Europe"],
+        "Netherlands": ["Amsterdam", "Europe"],
+        "Belgium": ["Brussels", "Europe"],
+        "Switzerland": ["Bern", "Europe"],
+        "Austria": ["Vienna", "Europe"],
+        "Poland": ["Warsaw", "Europe"],
+        "Ukraine": ["Kyiv", "Europe"],
+        "Sweden": ["Stockholm", "Europe"],
+        "Norway": ["Oslo", "Europe"],
+        "Finland": ["Helsinki", "Europe"],
+        "Denmark": ["Copenhagen", "Europe"],
+        "Iceland": ["Reykjavík", "Europe"],
+        "Greece": ["Athens", "Europe"],
+        "Czechia": ["Prague", "Europe"],
+        "Czech Rep.": ["Prague", "Europe"],
+        "Hungary": ["Budapest", "Europe"],
+        "Romania": ["Bucharest", "Europe"],
+        "Bulgaria": ["Sofia", "Europe"],
+        "Serbia": ["Belgrade", "Europe"],
+        "Croatia": ["Zagreb", "Europe"],
+        "Bosnia and Herz.": ["Sarajevo", "Europe"],
+        "Slovakia": ["Bratislava", "Europe"],
+        "Slovenia": ["Ljubljana", "Europe"],
+        "Lithuania": ["Vilnius", "Europe"],
+        "Latvia": ["Riga", "Europe"],
+        "Estonia": ["Tallinn", "Europe"],
+        "Belarus": ["Minsk", "Europe"],
+        "Moldova": ["Chișinău", "Europe"],
+        "Albania": ["Tirana", "Europe"],
+        "North Macedonia": ["Skopje", "Europe"],
+        "Macedonia": ["Skopje", "Europe"],
+        "Montenegro": ["Podgorica", "Europe"],
+        "Kosovo": ["Pristina", "Europe"],
+        // Africa
+        "Egypt": ["Cairo", "Africa"],
+        "Algeria": ["Algiers", "Africa"],
+        "Morocco": ["Rabat", "Africa"],
+        "Tunisia": ["Tunis", "Africa"],
+        "Libya": ["Tripoli", "Africa"],
+        "Nigeria": ["Abuja", "Africa"],
+        "Ethiopia": ["Addis Ababa", "Africa"],
+        "Kenya": ["Nairobi", "Africa"],
+        "South Africa": ["Pretoria", "Africa"],
+        "Tanzania": ["Dodoma", "Africa"],
+        "Uganda": ["Kampala", "Africa"],
+        "Ghana": ["Accra", "Africa"],
+        "Angola": ["Luanda", "Africa"],
+        "Mozambique": ["Maputo", "Africa"],
+        "Sudan": ["Khartoum", "Africa"],
+        "S. Sudan": ["Juba", "Africa"],
+        "Somalia": ["Mogadishu", "Africa"],
+        "Dem. Rep. Congo": ["Kinshasa", "Africa"],
+        "Congo": ["Brazzaville", "Africa"],
+        "Cameroon": ["Yaoundé", "Africa"],
+        "Côte d'Ivoire": ["Yamoussoukro", "Africa"],
+        "Ivory Coast": ["Yamoussoukro", "Africa"],
+        "Mali": ["Bamako", "Africa"],
+        "Niger": ["Niamey", "Africa"],
+        "Chad": ["N'Djamena", "Africa"],
+        "Senegal": ["Dakar", "Africa"],
+        "Zimbabwe": ["Harare", "Africa"],
+        "Zambia": ["Lusaka", "Africa"],
+        "Botswana": ["Gaborone", "Africa"],
+        "Namibia": ["Windhoek", "Africa"],
+        "Madagascar": ["Antananarivo", "Africa"],
+        "Mauritania": ["Nouakchott", "Africa"],
+        "Rwanda": ["Kigali", "Africa"],
+        "Burkina Faso": ["Ouagadougou", "Africa"],
+        "Guinea": ["Conakry", "Africa"],
+        "Benin": ["Porto-Novo", "Africa"],
+        "Central African Rep.": ["Bangui", "Africa"],
+        "Malawi": ["Lilongwe", "Africa"],
+        "Gabon": ["Libreville", "Africa"],
+        "Eritrea": ["Asmara", "Africa"],
+        "Togo": ["Lomé", "Africa"],
+        "Sierra Leone": ["Freetown", "Africa"],
+        "Liberia": ["Monrovia", "Africa"],
+        // Asia
+        "China": ["Beijing", "Asia"],
+        "India": ["New Delhi", "Asia"],
+        "Japan": ["Tokyo", "Asia"],
+        "South Korea": ["Seoul", "Asia"],
+        "North Korea": ["Pyongyang", "Asia"],
+        "Mongolia": ["Ulaanbaatar", "Asia"],
+        "Russia": ["Moscow", "Asia"],
+        "Kazakhstan": ["Astana", "Asia"],
+        "Uzbekistan": ["Tashkent", "Asia"],
+        "Turkmenistan": ["Ashgabat", "Asia"],
+        "Kyrgyzstan": ["Bishkek", "Asia"],
+        "Tajikistan": ["Dushanbe", "Asia"],
+        "Afghanistan": ["Kabul", "Asia"],
+        "Pakistan": ["Islamabad", "Asia"],
+        "Bangladesh": ["Dhaka", "Asia"],
+        "Nepal": ["Kathmandu", "Asia"],
+        "Bhutan": ["Thimphu", "Asia"],
+        "Sri Lanka": ["Colombo", "Asia"],
+        "Myanmar": ["Naypyidaw", "Asia"],
+        "Thailand": ["Bangkok", "Asia"],
+        "Vietnam": ["Hanoi", "Asia"],
+        "Laos": ["Vientiane", "Asia"],
+        "Cambodia": ["Phnom Penh", "Asia"],
+        "Malaysia": ["Kuala Lumpur", "Asia"],
+        "Indonesia": ["Jakarta", "Asia"],
+        "Philippines": ["Manila", "Asia"],
+        "Iran": ["Tehran", "Asia"],
+        "Iraq": ["Baghdad", "Asia"],
+        "Saudi Arabia": ["Riyadh", "Asia"],
+        "Yemen": ["Sanaa", "Asia"],
+        "Oman": ["Muscat", "Asia"],
+        "United Arab Emirates": ["Abu Dhabi", "Asia"],
+        "Turkey": ["Ankara", "Asia"],
+        "Türkiye": ["Ankara", "Asia"],
+        "Syria": ["Damascus", "Asia"],
+        "Jordan": ["Amman", "Asia"],
+        "Israel": ["Jerusalem", "Asia"],
+        "Lebanon": ["Beirut", "Asia"],
+        "Georgia": ["Tbilisi", "Asia"],
+        "Armenia": ["Yerevan", "Asia"],
+        "Azerbaijan": ["Baku", "Asia"],
+        // Oceania
+        "Australia": ["Canberra", "Oceania"],
+        "New Zealand": ["Wellington", "Oceania"],
+        "Papua New Guinea": ["Port Moresby", "Oceania"],
+        "Fiji": ["Suva", "Oceania"],
+        "Solomon Is.": ["Honiara", "Oceania"]
+    };
+
+    const els = {
+        map: document.getElementById('map-container'),
+        clues: document.getElementById('clue-list'),
+        score: document.getElementById('score'),
+        streak: document.getElementById('streak'),
+        overlay: document.getElementById('feedback-overlay'),
+        fbName: document.getElementById('fb-name'),
+        fbCap: document.getElementById('fb-capital'),
+        loading: document.getElementById('loading'),
+        svg: document.getElementById('map-svg')
+    };
+
+    // Touch mode drives the thumb-reach HUD and larger hit targets. Forced
+    // on with ?touch=1 so the layout can be checked on a desktop browser.
+    const forceTouch = new URLSearchParams(location.search).get('touch') === '1';
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    if (forceTouch || isCoarse) document.documentElement.classList.add('touch-mode');
+
+    const W = 960, H = 500;
+    const projection = d3.geoNaturalEarth1().fitSize([W, H], { type: "Sphere" });
+    const geoPath = d3.geoPath(projection);
+
+    // Pan / zoom: wheel or buttons to zoom, drag to pan. The same behavior
+    // also drives the automatic zoom-to-country on a correct answer.
+    const svgSel = d3.select('#map-svg');
+    const gSel = d3.select('#map-container');
+    const zoom = d3.zoom()
+        .scaleExtent([1, 12])
+        .translateExtent([[0, 0], [W, H]])
+        .on('zoom', (event) => gSel.attr('transform', event.transform));
+    svgSel.call(zoom).on('dblclick.zoom', null);
+
+    function resetView(ms) {
+        svgSel.transition().duration(ms).call(zoom.transform, d3.zoomIdentity);
+    }
+
+    let score = 0, streak = 0;
+    let FACTS = {};         // country name -> hand-written fact record
+    let targets = [];       // features eligible to be quizzed
+    let target = null;      // current target feature
+    let locked = false;     // true briefly after a correct answer
+
+    Promise.all([
+        d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"),
+        d3.json("data/world_facts.json")
+    ]).then(([world, facts]) => {
+            for (const c of facts.countries) FACTS[c.country] = c;
+
+            const features = topojson.feature(world, world.objects.countries).features;
+            renderMap(features);
+            drawClimate();
+            // Every country in DATA is drawn and coloured, but only the ones
+            // with hand-written clues can be asked about -- so dropping a new
+            // continent into data/world_facts.json is all it takes to add it.
+            targets = features.filter(f => DATA[f.properties.name] && FACTS[f.properties.name]);
+            els.loading.remove();
+            nextRound();
+        })
+        .catch(err => {
+            els.loading.textContent = "Could not load the map or clue data. The map needs an " +
+                "internet connection, and data/world_facts.json must sit next to this page.";
+            console.error(err);
+        });
+
+    function renderMap(features) {
+        for (const f of features) {
+            const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            p.setAttribute("d", geoPath(f));
+            p.setAttribute("class", "country");
+            const info = DATA[f.properties.name];
+            if (info) p.setAttribute("data-continent", info[1]);
+            p.__feature = f;
+            els.map.appendChild(p);
+        }
+    }
+
+    // Selection is handled with Pointer Events on the SVG itself rather than
+    // per-path clicks, so mouse, pen and touch all take one code path and a
+    // pan/pinch gesture that ends over a country never counts as an answer.
+    let tap = null;
+    els.svg.addEventListener('pointerdown', (e) => {
+        // A second finger means a pinch, not a tap.
+        if (!e.isPrimary) { tap = null; return; }
+        tap = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+    });
+    els.svg.addEventListener('pointerup', (e) => {
+        if (!tap || e.pointerId !== tap.id) return;
+        const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y);
+        const elapsed = performance.now() - tap.t;
+        const slop = e.pointerType === 'mouse' ? 5 : 14;   // fingers wobble
+        tap = null;
+        if (moved > slop || elapsed > 700) return;
+
+        // Hit-test where the pointer was released; touch pointers keep
+        // implicit capture on the pointerdown target, so e.target alone
+        // would be stale after even a small drift.
+        const hit = document.elementFromPoint(e.clientX, e.clientY);
+        const path = hit && hit.closest ? hit.closest('.country') : null;
+        if (path && path.__feature) handleClick(path.__feature, path);
+    });
+    els.svg.addEventListener('pointercancel', () => { tap = null; });
+
+    // Constant-latitude geometry, sampled across all longitudes so the line
+    // curves correctly under the Natural Earth projection.
+    function latLine(lat) {
+        const coords = [];
+        for (let lon = -180; lon <= 180; lon += 4) coords.push([lon, lat]);
+        return { type: "LineString", coordinates: coords };
+    }
+    function latBand(latTop, latBottom) {
+        const coords = [];
+        for (let lon = -180; lon <= 180; lon += 4) coords.push([lon, latTop]);
+        for (let lon = 180; lon >= -180; lon -= 4) coords.push([lon, latBottom]);
+        coords.push([-180, latTop]);
+        return { type: "Polygon", coordinates: [coords] };
+    }
+
+    function drawClimate() {
+        const NS = "http://www.w3.org/2000/svg";
+        const layer = document.createElementNS(NS, "g");
+        layer.setAttribute("id", "climate-layer");
+        layer.setAttribute("pointer-events", "none");
+
+        // Shaded bands (thresholds match the climate clue: 23.5° and 66.5°)
+        const bands = [
+            [23.5, -23.5, "rgba(244,162,97,0.15)"],   // tropical
+            [66.5, 23.5,  "rgba(42,157,143,0.12)"],   // northern temperate
+            [-23.5, -66.5,"rgba(42,157,143,0.12)"]    // southern temperate
+        ];
+        for (const [a, b, fill] of bands) {
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("d", geoPath(latBand(a, b)));
+            p.setAttribute("fill", fill);
+            layer.appendChild(p);
+        }
+
+        // Reference lines with labels
+        const lines = [
+            [0, "Equator", true],
+            [23.5, "Tropic of Cancer", false],
+            [-23.5, "Tropic of Capricorn", false],
+            [66.5, "Arctic Circle", false],
+            [-66.5, "Antarctic Circle", false]
+        ];
+        for (const [lat, label, isEquator] of lines) {
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("d", geoPath(latLine(lat)));
+            p.setAttribute("class", isEquator ? "clim-line equator" : "clim-line");
+            layer.appendChild(p);
+
+            const [x, y] = projection([-155, lat]);
+            const t = document.createElementNS(NS, "text");
+            t.setAttribute("x", x);
+            t.setAttribute("y", y - 2);
+            t.setAttribute("class", "clim-label");
+            t.textContent = label;
+            layer.appendChild(t);
+        }
+        els.map.appendChild(layer);
+    }
+
+    // Hand-written clues from data/world_facts.json, already ordered hardest
+    // (most obscure) to easiest, which is the order they are shown in.
+    function buildClues(feature) {
+        return FACTS[feature.properties.name].clues;
+    }
+
+    function nextRound() {
+        locked = false;
+        els.overlay.classList.remove('show');
+        resetView(600);
+        for (const p of els.map.children) p.classList.remove('correct', 'wrong');
+
+        target = targets[Math.floor(Math.random() * targets.length)];
+        els.clues.innerHTML = '';
+        for (const c of buildClues(target)) {
+            const li = document.createElement('li');
+            li.textContent = c;   // clue text is prose, not markup
+            els.clues.appendChild(li);
+        }
+    }
+
+    function handleClick(feature, pathEl) {
+        if (locked) return;
+
+        if (feature === target) {
+            locked = true;
+            score += 10;
+            streak += 1;
+            els.score.textContent = score;
+            els.streak.textContent = streak;
+            pathEl.classList.add('correct');
+            zoomTo(feature);
+
+            const [capital] = DATA[feature.properties.name];
+            els.fbName.textContent = feature.properties.name.toUpperCase();
+            els.fbCap.textContent = "Capital: " + capital;
+            setTimeout(() => els.overlay.classList.add('show'), 350);
+            setTimeout(nextRound, 3200);
+        } else {
+            streak = 0;
+            els.streak.textContent = streak;
+            pathEl.classList.add('wrong');
+            setTimeout(() => pathEl.classList.remove('wrong'), 900);
+        }
+    }
+
+    function zoomTo(feature) {
+        const [[x0, y0], [x1, y1]] = geoPath.bounds(feature);
+        const bw = x1 - x0, bh = y1 - y0;
+        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        const scale = Math.max(1, Math.min(8, 0.55 * Math.min(W / bw, H / bh)));
+        const t = d3.zoomIdentity.translate(W / 2, H / 2).scale(scale).translate(-cx, -cy);
+        svgSel.transition().duration(900).call(zoom.transform, t);
+    }
+
+    function skipRound() {
+        if (locked) return;
+        streak = 0;
+        els.streak.textContent = 0;
+        nextRound();
+    }
+
+    // The header and the touch HUD each carry a copy of these controls, so
+    // bind by class and keep every copy's label in sync.
+    let climateOn = true;
+    function toggleClimate() {
+        climateOn = !climateOn;
+        const layer = document.getElementById('climate-layer');
+        if (layer) layer.style.display = climateOn ? '' : 'none';
+        const label = 'Climate: ' + (climateOn ? 'On' : 'Off');
+        document.querySelectorAll('.js-climate').forEach(b => b.textContent = label);
+    }
+
+    const zoomBy = (k) => svgSel.transition().duration(250).call(zoom.scaleBy, k);
+
+    document.querySelectorAll('.js-skip').forEach(b => b.addEventListener('click', skipRound));
+    document.querySelectorAll('.js-climate').forEach(b => b.addEventListener('click', toggleClimate));
+    document.getElementById('zc-in').addEventListener('click', () => zoomBy(1.6));
+    document.getElementById('zc-out').addEventListener('click', () => zoomBy(1 / 1.6));
+    document.getElementById('zc-reset').addEventListener('click', () => resetView(400));
+
+    // Desktop keyboard shortcuts.
+    document.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        switch (e.key) {
+            case '+': case '=': zoomBy(1.6); break;
+            case '-': case '_': zoomBy(1 / 1.6); break;
+            case '0': resetView(400); break;
+            case 's': case 'S': skipRound(); break;
+            case 'c': case 'C': toggleClimate(); break;
+            default: return;
+        }
+        e.preventDefault();
+    });
+    </script>
+
+<script>
+(function () {
+  var overlay = document.getElementById('sq-open');
+  var cont = document.getElementById('sq-continue');
+  var btn = document.getElementById('sq-play');
+  var stage = overlay && overlay.querySelector('.sq-stage');
+  if (!overlay) return;
+  function goHowto(e) {
+    if (overlay.classList.contains('is-howto') || overlay.classList.contains('is-off')) return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-howto');
+  }
+  function start(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-off');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (typeof gameState !== 'undefined' && gameState === 'TITLE') {
+      gameState = 'PLAYING';
+    }
+    document.dispatchEvent(new CustomEvent('sq-play'));
+  }
+  if (cont) cont.addEventListener('click', goHowto);
+  if (stage) stage.addEventListener('click', goHowto);
+  if (btn) btn.addEventListener('click', start);
+  window.addEventListener('keydown', function (e) {
+    if (overlay.classList.contains('is-off')) return;
+    if (e.code === 'Enter' || e.code === 'Space') {
+      if (overlay.classList.contains('is-howto')) start(e);
+      else goHowto(e);
+    }
+  }, true);
+})();
+</script>
+
+</body>
+</html>

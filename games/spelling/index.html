@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Spelling</title>
+<style>
+  :root {
+    --deep-purple: #5A276B;
+    --electric-blue: #3AB8FF;
+    --bright-yellow: #FFEA00;
+    --vivid-orange: #FF6200;
+    --bg: #FFFFFF;
+    --text: #333333;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Comic Sans MS", "Trebuchet MS", Verdana, sans-serif;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .app-header {
+    background: var(--deep-purple);
+    color: #fff;
+    text-align: center;
+    padding: 18px 12px 14px;
+  }
+
+  .app-header h1 {
+    margin: 0 0 4px;
+    font-size: clamp(1.4rem, 5vw, 2.1rem);
+  }
+
+  .app-header p {
+    margin: 0;
+    font-size: clamp(0.85rem, 3vw, 1rem);
+    opacity: 0.9;
+  }
+
+  .mode-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 10px;
+    background: #f4f0f7;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 3px solid var(--deep-purple);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mode-btn {
+    flex: 0 0 auto;
+    background: var(--electric-blue);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    min-height: 44px;
+    white-space: nowrap;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+
+  .mode-btn.active {
+    background: var(--vivid-orange);
+  }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 18px 14px 50px;
+  }
+
+  .mode-section { display: none; }
+  .mode-section.active { display: block; }
+
+  .section-title {
+    color: var(--vivid-orange);
+    text-align: center;
+    font-size: clamp(1.2rem, 4.5vw, 1.6rem);
+    margin: 4px 0 16px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    min-height: 48px;
+  }
+
+  .btn-primary {
+    background: var(--vivid-orange);
+    color: #fff;
+  }
+  .btn-primary:active { filter: brightness(0.92); }
+
+  .btn-secondary {
+    background: var(--electric-blue);
+    color: #fff;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .center-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* ---------- Flashcards ---------- */
+  .flash-progress {
+    text-align: center;
+    font-weight: bold;
+    color: var(--deep-purple);
+    margin-bottom: 10px;
+  }
+
+  .flip-card {
+    perspective: 1200px;
+    width: 100%;
+    max-width: 460px;
+    height: 260px;
+    margin: 0 auto 18px;
+  }
+
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    touch-action: pan-y;
+    user-select: none;
+  }
+
+  .flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-front, .flip-card-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+  }
+
+  .flip-card-front {
+    background: var(--electric-blue);
+    color: #fff;
+  }
+
+  .flip-card-front .word {
+    font-size: clamp(1.8rem, 8vw, 2.6rem);
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+
+  .flip-card-front .hint, .flip-card-back .hint {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+
+  .flip-card-back {
+    background: var(--deep-purple);
+    color: #fff;
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-back .def-label {
+    color: var(--bright-yellow);
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .flip-card-back p {
+    margin: 4px 0 10px;
+    font-size: 1rem;
+  }
+
+  /* ---------- Matching ---------- */
+  .score-bar {
+    text-align: center;
+    font-weight: bold;
+    color: var(--deep-purple);
+    background: #f4f0f7;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 14px;
+  }
+
+  .match-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .match-btn {
+    border-radius: 14px;
+    padding: 14px 8px;
+    min-height: 64px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 3px solid transparent;
+  }
+
+  .match-word {
+    background: var(--electric-blue);
+    color: #fff;
+  }
+
+  .match-def {
+    background: #fff;
+    color: var(--deep-purple);
+    border-color: var(--deep-purple);
+    font-weight: normal;
+    font-size: 0.85rem;
+  }
+
+  .match-btn.selected {
+    border-color: var(--bright-yellow);
+    box-shadow: 0 0 0 3px var(--bright-yellow);
+  }
+
+  .match-btn.matched {
+    background: var(--bright-yellow);
+    color: var(--deep-purple);
+    border-color: var(--bright-yellow);
+  }
+
+  .match-btn.error {
+    background: var(--vivid-orange) !important;
+    color: #fff !important;
+  }
+
+  .match-btn:disabled { cursor: default; }
+
+  .win-banner {
+    position: relative;
+    overflow: visible;
+    text-align: center;
+    background: var(--bright-yellow);
+    color: var(--deep-purple);
+    border-radius: 14px;
+    padding: 14px;
+    font-weight: bold;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .win-banner.show { display: block; }
+
+  /* Celebration stars, pulled from the Puzzlers sprite sheet's
+     particleCartoonStar (solid star) and particleStar (soft glow) frames. */
+  .celebration-star {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+    animation: starTwinkle 0.5s ease-in-out infinite;
+  }
+
+  .celebration-star .glow,
+  .celebration-star .shape {
+    position: absolute;
+    inset: 0;
+    background-color: var(--bright-yellow);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    mask-mode: alpha;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    image-rendering: pixelated;
+  }
+
+  .celebration-star .glow {
+    inset: -65%;
+    opacity: 0.8;
+    mask-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABRklEQVR4nN2TQUoDQRREq8RhGrphSEiEbCSY3kTiCfQmLnWZK3gTty4FD+ERGt1kcBkwQQl0wwwh+W4mYEIyaTRurG0Xxfu/fgP/Qs65hnOuEeM9ijFZa5u/Q9rQbDa7KoqiF+M9jjFprVsAWgDyfd6okUm2SbZjKFn3WBRFL0mSawBnJLWIBO/9fZZlzz8iTJJkSPICQFdE2gC6xpjbusbXCJ1zDWttsyzLjjGmD+ASQJfkiYhokkFE3gE8eO9fASBN0/FoNPoYDAafa4Tfw6oSOiQ1AIiIXi6XpyKiK/u5MaavtW6VZdmx1jZX1Dt3WO3vbhvhfD6/UUptbXznDpVSuYg8kZxUY76txt0VVku4QToEAO/9Y13DQMRhK6XyxWLxAgD7wqICAUBEJiGEaYw36qeEEKZpmo4PFri6tYMFxob9ib4AoG2UmI+Sq7MAAAAASUVORK5CYII=");
+    -webkit-mask-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABRklEQVR4nN2TQUoDQRREq8RhGrphSEiEbCSY3kTiCfQmLnWZK3gTty4FD+ERGt1kcBkwQQl0wwwh+W4mYEIyaTRurG0Xxfu/fgP/Qs65hnOuEeM9ijFZa5u/Q9rQbDa7KoqiF+M9jjFprVsAWgDyfd6okUm2SbZjKFn3WBRFL0mSawBnJLWIBO/9fZZlzz8iTJJkSPICQFdE2gC6xpjbusbXCJ1zDWttsyzLjjGmD+ASQJfkiYhokkFE3gE8eO9fASBN0/FoNPoYDAafa4Tfw6oSOiQ1AIiIXi6XpyKiK/u5MaavtW6VZdmx1jZX1Dt3WO3vbhvhfD6/UUptbXznDpVSuYg8kZxUY76txt0VVku4QToEAO/9Y13DQMRhK6XyxWLxAgD7wqICAUBEJiGEaYw36qeEEKZpmo4PFri6tYMFxob9ib4AoG2UmI+Sq7MAAAAASUVORK5CYII=");
+  }
+
+  .celebration-star .shape {
+    mask-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAArklEQVR4nHWPsQ6DMAxEnShMDFGr/gFzJT4AVKlDZz6anQWJKQNVxy6JhOLBTrq0NIT2Jvv8dNYBZELEChGr3Fe5URTF9T2a/LYRMw/MPOwSrbXNZynL8iSlrAEAiKhbluW5kkTUee/jP3nvIxF1AABgrW2Yec4hZp7Tj2vbHEzbyx9tvwWUOu9AIcQthHB3zrXOuRYRQQhx2YDjOB5ijI9pmmqtda+17o0xxzT9BVE8jxHWZSJVAAAAAElFTkSuQmCC");
+    -webkit-mask-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAArklEQVR4nHWPsQ6DMAxEnShMDFGr/gFzJT4AVKlDZz6anQWJKQNVxy6JhOLBTrq0NIT2Jvv8dNYBZELEChGr3Fe5URTF9T2a/LYRMw/MPOwSrbXNZynL8iSlrAEAiKhbluW5kkTUee/jP3nvIxF1AABgrW2Yec4hZp7Tj2vbHEzbyx9tvwWUOu9AIcQthHB3zrXOuRYRQQhx2YDjOB5ijI9pmmqtda+17o0xxzT9BVE8jxHWZSJVAAAAAElFTkSuQmCC");
+  }
+
+  @keyframes starTwinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.6) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.25) rotate(20deg); }
+  }
+
+  /* ---------- Spelling Drop ---------- */
+  .drop-stats {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    color: var(--deep-purple);
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+
+  .drop-area {
+    position: relative;
+    height: 300px;
+    background: linear-gradient(#efe6f4, #ffffff);
+    border: 3px solid var(--deep-purple);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .falling-letter {
+    position: absolute;
+    top: -15%;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--bright-yellow);
+    border: 3px solid var(--vivid-orange);
+    color: var(--deep-purple);
+    font-size: 1.3rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: top linear;
+  }
+
+  .falling-letter.falling {
+    top: 100%;
+  }
+
+  .falling-letter.wrong-flash {
+    background: var(--vivid-orange);
+    color: #fff;
+  }
+
+  .drop-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .drop-slot {
+    width: 34px;
+    height: 40px;
+    border-bottom: 4px solid var(--deep-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--deep-purple);
+  }
+
+  .overlay-msg {
+    position: relative;
+    overflow: visible;
+    text-align: center;
+    background: #f4f0f7;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .overlay-msg.success { background: var(--bright-yellow); color: var(--deep-purple); }
+  .overlay-msg.danger { background: var(--vivid-orange); color: #fff; }
+
+  /* ---------- Missing Letter Detective ---------- */
+  .blank-def {
+    text-align: center;
+    font-style: italic;
+    color: var(--deep-purple);
+    margin-bottom: 14px;
+  }
+
+  .blank-word-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .blank-box {
+    min-width: 32px;
+    height: 44px;
+    padding: 0 4px;
+    border-bottom: 4px solid var(--deep-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--deep-purple);
+  }
+
+  .blank-box.empty {
+    background: #f4f0f7;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .blank-box.filled {
+    background: var(--bright-yellow);
+    border-radius: 8px 8px 0 0;
+  }
+
+  .tile-bank {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .letter-tile {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--electric-blue);
+    color: #fff;
+    border: none;
+    font-size: 1.4rem;
+    font-weight: bold;
+  }
+
+  .letter-tile.error {
+    background: var(--vivid-orange);
+  }
+
+  /* ---------- Speed Word Search ---------- */
+  .search-target {
+    position: relative;
+    overflow: visible;
+    text-align: center;
+    background: #f4f0f7;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .search-target .label {
+    color: var(--vivid-orange);
+    font-weight: bold;
+    font-size: 0.85rem;
+  }
+
+  .search-timer {
+    text-align: center;
+    font-weight: bold;
+    color: var(--vivid-orange);
+    margin-bottom: 10px;
+  }
+
+  .search-grid {
+    display: grid;
+    gap: 3px;
+    justify-content: center;
+    margin-bottom: 16px;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .search-cell {
+    width: clamp(24px, 8vw, 36px);
+    height: clamp(24px, 8vw, 36px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #ddd;
+    font-weight: bold;
+    font-size: clamp(0.7rem, 3vw, 0.95rem);
+    color: var(--text);
+    border-radius: 4px;
+  }
+
+  .search-cell.selecting {
+    background: var(--bright-yellow);
+  }
+
+  .search-cell.found {
+    background: var(--electric-blue);
+    color: #fff;
+  }
+
+  .search-cell.wrong {
+    background: var(--vivid-orange);
+    color: #fff;
+  }
+
+  footer {
+    text-align: center;
+    color: #888;
+    font-size: 0.8rem;
+    padding: 20px 10px 30px;
+  }
+</style>
+<style>
+
+        #sq-open {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        #sq-open.is-off { display: none !important; }
+        #sq-open .sq-stage {
+            position: relative;
+            width: min(100%, 1400px);
+            max-height: 100%;
+            max-height: 100dvh;
+        }
+        #sq-open .sq-art {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 100dvh;
+            object-fit: contain;
+        }
+        #sq-open.pixel .sq-art {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #sq-open .sq-play {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: none;
+            border: 0;
+            padding: 12px 16px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-play img {
+            display: block;
+            width: 276px;
+            height: 87px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            image-rendering: -moz-crisp-edges;
+            pointer-events: none;
+        }
+        @media (max-width: 640px) {
+            #sq-open .sq-play img { width: 184px; height: 58px; }
+        }
+
+        #sq-open .sq-continue {
+            position: absolute;
+            left: 50%;
+            bottom: 8%;
+            transform: translateX(-50%);
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(16px, 4vw, 22px);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 12px 22px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #sq-open .sq-howto {
+            display: none;
+            width: min(100%, 560px);
+            max-height: 92dvh;
+            overflow: auto;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        #sq-open.is-howto .sq-stage { display: none; }
+        #sq-open.is-howto .sq-howto { display: block; }
+        #sq-open .sq-howto-card {
+            background: #fff6eb;
+            color: #3b2a1a;
+            border: 4px solid #8b4e1f;
+            padding: 22px 20px 16px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #sq-open .sq-howto-card h2 {
+            margin: 0 0 12px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(22px, 5vw, 30px);
+            line-height: 1.2;
+        }
+        #sq-open .sq-howto-card p {
+            margin: 0 0 10px;
+            font-size: clamp(15px, 3.6vw, 18px);
+            line-height: 1.45;
+            text-align: left;
+        }
+        #sq-open.is-howto .sq-play {
+            position: static;
+            transform: none;
+            margin: 10px auto 0;
+            display: inline-block;
+        }
+
+        #sq-open .sq-studio {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #fff6eb;
+            background: rgba(26, 18, 12, 0.78);
+            border: 2px solid #e8a838;
+            padding: 4px 8px 4px 4px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #sq-open .sq-studio svg {
+            display: block;
+            width: 22px;
+            height: 22px;
+            flex: none;
+        }
+
+
+
+</style>
+</head>
+<body>
+<div id="sq-open" role="dialog" aria-modal="true" aria-label="Spelling">
+    <a class="sq-studio" href="https://snackquests.com" id="sq-studio">
+    <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true" focusable="false">
+      <ellipse cx="32" cy="38" rx="20" ry="14" fill="#E8A838"/>
+      <ellipse cx="32" cy="34" rx="18" ry="11" fill="#F4B942"/>
+      <circle cx="24" cy="34" r="2.2" fill="#3B2A1A"/>
+      <circle cx="40" cy="34" r="2.2" fill="#3B2A1A"/>
+      <path d="M26 40c2 2.4 10 2.4 12 0" fill="none" stroke="#3B2A1A" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Snack Quests</span>
+  </a>
+<div class="sq-stage" id="sq-art-screen">
+    <img class="sq-art" src="assets/opening.jpg" alt="Spelling">
+    <button type="button" class="sq-continue" id="sq-continue">Tap to continue</button>
+  </div>
+  <div class="sq-howto" id="sq-howto">
+    <div class="sq-howto-card">
+      <h2>Spelling &mdash; Level 3, Session 1</h2>
+      <p>Multiple different games to help improve your spelling in English and Spanish.</p>
+      <button type="button" class="sq-play" id="sq-play" aria-label="Play">
+        <img src="assets/btn_play.png" alt="PLAY" width="92" height="29">
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<header class="app-header">
+  <h1>Spelling</h1>
+  <p>September, Week 1 vocabulary practice</p>
+</header>
+
+<nav class="mode-nav" id="modeNav">
+  <button class="mode-btn active" data-mode="flashcards">Flashcards</button>
+  <button class="mode-btn" data-mode="matching">Matching</button>
+  <button class="mode-btn" data-mode="drop">Spelling Drop</button>
+  <button class="mode-btn" data-mode="blank">Missing Letter</button>
+  <button class="mode-btn" data-mode="search">Word Search</button>
+</nav>
+
+<main>
+
+  <!-- Flashcards -->
+  <section class="mode-section active" id="flashcards-section">
+    <h2 class="section-title">Flashcards</h2>
+    <div class="flash-progress" id="flashProgress">Card 1 of 10</div>
+    <div class="flip-card" id="flipCard">
+      <div class="flip-card-inner" id="flipCardInner">
+        <div class="flip-card-front">
+          <div class="word" id="flashWord">WORD</div>
+          <div class="hint">Tap to flip &middot; swipe for next/previous</div>
+        </div>
+        <div class="flip-card-back">
+          <div class="def-label">Definition</div>
+          <p id="flashDef">definition</p>
+          <div class="def-label">Sentence</div>
+          <p id="flashSentence">sentence</p>
+          <div class="hint">Tap to flip back</div>
+        </div>
+      </div>
+    </div>
+    <div class="center-row">
+      <button class="btn btn-primary" id="flashPrev">&#8592; Previous</button>
+      <button class="btn btn-primary" id="flashNext">Next &#8594;</button>
+    </div>
+  </section>
+
+  <!-- Matching -->
+  <section class="mode-section" id="matching-section">
+    <h2 class="section-title">Matching</h2>
+    <div class="score-bar" id="matchScoreBar">Matches: 0 / 6 &nbsp;|&nbsp; Score: 0</div>
+    <div class="win-banner" id="matchWinBanner">You matched them all! Great job!</div>
+    <div class="match-grid" id="matchGrid"></div>
+    <div class="center-row">
+      <button class="btn btn-primary" id="matchReset">New Round</button>
+    </div>
+  </section>
+
+  <!-- Spelling Drop -->
+  <section class="mode-section" id="drop-section">
+    <h2 class="section-title">Spelling Drop</h2>
+    <div class="drop-stats">
+      <span id="dropScore">Score: 0</span>
+      <span id="dropLives">Lives: 3</span>
+    </div>
+    <div class="drop-area" id="dropArea"></div>
+    <div class="drop-progress" id="dropProgress"></div>
+    <div class="overlay-msg" id="dropMessage" style="display:none;"></div>
+    <div class="center-row">
+      <button class="btn btn-primary" id="dropRestart">Restart Game</button>
+    </div>
+  </section>
+
+  <!-- Missing Letter Detective -->
+  <section class="mode-section" id="blank-section">
+    <h2 class="section-title">Missing Letter Detective</h2>
+    <div class="score-bar" id="blankScoreBar">Score: 0</div>
+    <div class="blank-def" id="blankSentence">Sentence with a blanked word appears here.</div>
+    <div class="blank-word-row" id="blankWordRow"></div>
+    <div class="tile-bank" id="blankBank"></div>
+    <div class="overlay-msg" id="blankMessage" style="display:none;"></div>
+    <div class="center-row">
+      <button class="btn btn-primary" id="blankSkip">Skip Word</button>
+    </div>
+  </section>
+
+  <!-- Speed Word Search -->
+  <section class="mode-section" id="search-section">
+    <h2 class="section-title">Speed Word Search</h2>
+    <div class="score-bar" id="searchScoreBar">Score: 0</div>
+    <div class="search-target" id="searchTarget">
+      <div class="label">FIND THE WORD THAT MEANS:</div>
+      <div id="searchDefText">definition</div>
+    </div>
+    <div class="search-timer" id="searchTimer">Time left: 1:20</div>
+    <div class="search-grid" id="searchGrid"></div>
+    <div class="overlay-msg" id="searchMessage" style="display:none;"></div>
+    <div class="center-row">
+      <button class="btn btn-primary" id="searchRestart">New Grid</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>Practice makes perfect spellers.</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // Data
+  // ---------------------------------------------------------------
+  var WORDS = [
+    { word: "accident", def: "An unexpected event that causes damage or injury.", sentence: "He slipped on the ice and had a minor accident." },
+    { word: "actual", def: "Existing in fact or reality.", sentence: "The actual cost was higher than the estimate." },
+    { word: "admiral", def: "A high-ranking commander in the navy.", sentence: "The admiral gave the order to set sail." },
+    { word: "adventure", def: "An exciting or unusual experience.", sentence: "Going on the camping trip was a grand adventure." },
+    { word: "afraid", def: "Feeling fear or apprehension.", sentence: "She was afraid of the dark room." },
+    { word: "airplane", def: "A powered flying vehicle with fixed wings.", sentence: "The airplane soared high above the clouds." },
+    { word: "alphabet", def: "A set of letters in a fixed order.", sentence: "Young children learn the alphabet song in preschool." },
+    { word: "always", def: "At all times or on every occasion.", sentence: "He always brushes his teeth before bed." },
+    { word: "amount", def: "A quantity of something.", sentence: "A large amount of snow fell overnight." },
+    { word: "ancient", def: "Belonging to the very distant past.", sentence: "They explored the ruins of an ancient castle." },
+    { word: "animal", def: "A living organism that feeds on organic matter.", sentence: "The tiger is a powerful wild animal." },
+    { word: "another", def: "One more in addition to the existing one.", sentence: "Would you like another slice of pie?" },
+    { word: "answer", def: "A reply to a question.", sentence: "She raised her hand to give the correct answer." },
+    { word: "anxious", def: "Experiencing worry, unease, or nervousness.", sentence: "He felt anxious before taking the big test." },
+    { word: "anyone", def: "Any person at all.", sentence: "Does anyone know the way to the library?" },
+    { word: "anything", def: "Used to refer to a thing, no matter what.", sentence: "You can ask me anything you want." },
+    { word: "anyway", def: "Used to indicate that a statement is true despite other factors.", sentence: "It was raining, but we went outside anyway." },
+    { word: "appear", def: "Come into sight or become visible.", sentence: "A rainbow began to appear in the sky." },
+    { word: "appliance", def: "A device or machine designed for a specific task.", sentence: "The refrigerator is a major kitchen appliance." },
+    { word: "april", def: "The fourth month of the year.", sentence: "Spring flowers start blooming in April." },
+    { word: "arctic", def: "Relating to the regions around the North Pole.", sentence: "Polar bears are built to survive the freezing arctic." },
+    { word: "around", def: "Located on every side or in a circle.", sentence: "They gathered around the campfire to stay warm." },
+    { word: "arrange", def: "Put things in a neat, attractive, or required order.", sentence: "She helped arrange the books on the shelf." },
+    { word: "arrive", def: "Reach a destination.", sentence: "The train is scheduled to arrive at noon." },
+    { word: "article", def: "A piece of writing included in a publication.", sentence: "He wrote a fascinating article about space." },
+    { word: "artist", def: "A person who creates paintings, drawings, or sculptures.", sentence: "The artist mixed blue and yellow paint on her palette." },
+    { word: "asking", def: "Saying something in order to obtain information.", sentence: "He was asking a lot of questions about how cars work." },
+    { word: "asleep", def: "In a state of sleep.", sentence: "The puppy was fast asleep on the rug." },
+    { word: "astonish", def: "Surprise or impress greatly.", sentence: "The magician plans to astonish the audience with his tricks." },
+    { word: "athlete", def: "A person who is proficient in sports and physical exercises.", sentence: "The runner trained hard to become an Olympic athlete." },
+    { word: "attack", def: "Take aggressive action against someone or something.", sentence: "The knight defended the castle from the enemy attack." },
+    { word: "attention", def: "Notice taken of someone or something.", sentence: "The loud noise caught everyone's attention." },
+    { word: "august", def: "The eighth month of the year.", sentence: "The weather is usually very hot in August." },
+    { word: "author", def: "A writer of a book, article, or report.", sentence: "My favorite author just released a new mystery novel." },
+    { word: "autumn", def: "The season between summer and winter.", sentence: "Leaves turn red and gold during autumn." },
+    { word: "avenue", def: "A broad road or street.", sentence: "Their house is located on a quiet tree-lined avenue." },
+    { word: "awake", def: "Not sleeping.", sentence: "He was wide awake long before sunrise." },
+    { word: "awkward", def: "Causing difficulty or embarrassment; clumsy.", sentence: "Carrying the large, slippery box felt very awkward." },
+    { word: "baggage", def: "Personal belongings packed for traveling.", sentence: "They checked their heavy baggage at the airport counter." },
+    { word: "balance", def: "An even distribution of weight enabling someone or something to remain upright.", sentence: "The tightrope walker kept her balance high above the ground." },
+    { word: "bamboo", def: "A giant woody grass with hollow stems.", sentence: "Pandas spend most of their day eating bamboo." },
+    { word: "bandage", def: "A strip of material used to bind a wound.", sentence: "The nurse put a clean bandage on his scraped knee." },
+    { word: "banquet", def: "A large formal meal for a large number of people.", sentence: "The king hosted a grand banquet for his guests." },
+    { word: "bargain", def: "A thing bought for much less than its normal price.", sentence: "She found a great bargain on winter boots." },
+    { word: "barrel", def: "A cylindrical container made of wood or metal with flat ends.", sentence: "The old wooden barrel was filled with rainwater." },
+    { word: "basement", def: "The floor of a building partly or entirely below ground level.", sentence: "They store old holiday decorations in the basement." },
+    { word: "basket", def: "A container made of woven material.", sentence: "She carried a basket full of fresh apples." },
+    { word: "batter", def: "A semi-liquid mixture containing flour, milk, and eggs.", sentence: "She poured the pancake batter onto the hot griddle." },
+    { word: "beacon", def: "A fire or light set up on a high or prominent position as a warning or signal.", sentence: "The lighthouse served as a beacon for ships at sea." },
+    { word: "beanie", def: "A small, close-fitting brimless hat.", sentence: "He pulled his wool beanie down over his ears." },
+    { word: "beauty", def: "A combination of qualities that pleases the intellect or moral sense.", sentence: "They stopped to admire the natural beauty of the canyon." },
+    { word: "become", def: "Begin to be.", sentence: "The caterpillar will eventually become a butterfly." },
+    { word: "bedspread", def: "A decorative cloth cover placed over a bed.", sentence: "She smoothed a colorful quilt-style bedspread over the mattress." },
+    { word: "before", def: "Earlier than the time mentioned.", sentence: "Wash your hands before eating dinner." },
+    { word: "begin", def: "Start.", sentence: "The movie is about to begin in a minute." },
+    { word: "behavior", def: "The way in which one acts or conducts oneself.", sentence: "The teacher praised the students for their good behavior." },
+    { word: "behind", def: "At or to the back of.", sentence: "He hid behind the large oak tree." },
+    { word: "believe", def: "Accept as true or real.", sentence: "Do you believe in magic?" },
+    { word: "belong", def: "Be the property of someone.", sentence: "This red backpack belongs to my sister." },
+    { word: "below", def: "At a lower level or layer.", sentence: "The valley stretched out far below the mountain peak." },
+    { word: "beneath", def: "Extending to a lower position than; under.", sentence: "He found the lost key hidden beneath the rug." },
+    { word: "berry", def: "A small, pulpy, and often edible fruit.", sentence: "They picked sweet wild blueberries in the woods." },
+    { word: "besides", def: "In addition to; apart from.", sentence: "Besides math, she also loves science class." },
+    { word: "blanket", def: "A large piece of warm cloth used for sleeping or keeping warm.", sentence: "He wrapped a cozy wool blanket around his shoulders." },
+    { word: "beyond", def: "On the further side of.", sentence: "The rolling hills stretched far beyond the horizon." },
+    { word: "bicycle", def: "A vehicle with two wheels powered by pedals.", sentence: "He rode his bicycle down the paved driveway." },
+    { word: "bigger", def: "Larger in size or extent.", sentence: "An elephant is much bigger than a horse." },
+    { word: "billion", def: "The number equivalent to one thousand million.", sentence: "The universe contains billions of distant stars." },
+    { word: "biology", def: "The study of living organisms.", sentence: "They learned about plant cells in biology class." },
+    { word: "biscuit", def: "A small, baked flour-based leavened bread product.", sentence: "She spread warm butter over a freshly baked biscuit." },
+    { word: "blossom", def: "A flower or a mass of flowers on a tree or bush.", sentence: "The cherry tree burst into pink blossom in the spring." },
+    { word: "board", def: "A long, thin, flat piece of wood or other hard material.", sentence: "He used a saw to cut the wooden board." },
+    { word: "boiler", def: "A fuel-burning apparatus used for heating water.", sentence: "The basement boiler keeps the whole house warm in winter." },
+    { word: "bonanza", def: "A situation that creates a sudden increase in wealth or good fortune.", sentence: "The garage sale turned out to be a pricing bonanza for collectors." },
+    { word: "border", def: "A line separating two countries, political divisions, or other areas.", sentence: "They crossed the border into Canada." },
+    { word: "borrow", def: "Take and use something with the intention of returning it.", sentence: "May I borrow your red marker for a minute?" },
+    { word: "bottle", def: "A glass or plastic container with a narrow neck, used for storing liquids.", sentence: "He filled his reusable water bottle at the fountain." },
+    { word: "bottom", def: "The lowest point or part of something.", sentence: "Coins sank straight to the bottom of the pool." },
+    { word: "boulder", def: "A large rock, typically one that has been worn smooth.", sentence: "A massive boulder blocked the hiking trail." },
+    { word: "bounce", def: "Rebound off a surface.", sentence: "The tennis ball began to bounce across the court." },
+    { word: "bountiful", def: "Large in quantity; abundant.", sentence: "The garden produced a bountiful harvest of tomatoes." },
+    { word: "bouquet", def: "An attractively arranged bunch of flowers.", sentence: "He handed his mother a bright bouquet of tulips." },
+    { word: "bowl", def: "A round, deep dish used for food or liquid.", sentence: "She ate a warm bowl of soup for lunch." },
+    { word: "bracket", def: "A L-shaped support fixed to a wall to hold up a shelf.", sentence: "He secured the metal bracket to the wall studs." },
+    { word: "branch", def: "A part of a tree that grows out from the trunk.", sentence: "A little bluebird landed on the low oak branch." },
+    { word: "brave", def: "Ready to face and endure danger or pain.", sentence: "The firefighter was brave during the rescue." },
+    { word: "breeze", def: "A gentle wind.", sentence: "A cool afternoon breeze rippled through the grass." },
+    { word: "brief", def: "Lasting for a short time.", sentence: "They took a brief pause before continuing the hike." },
+    { word: "bright", def: "Giving out a lot of light; shining.", sentence: "The sun was bright in the clear sky." },
+    { word: "brilliant", def: "Very bright; exceptionally clever or talented.", sentence: "She came up with a brilliant idea for the science project." },
+    { word: "bring", def: "Come to a place with someone or something.", sentence: "Please bring your notebook to the meeting." },
+    { word: "brittle", def: "Hard but liable to break easily.", sentence: "Dry autumn leaves are very brittle underfoot." },
+    { word: "broad", def: "Having a distance from side to side; wide.", sentence: "They crossed the broad river on a ferry." },
+    { word: "broken", def: "Fractured, damaged, or having been divided.", sentence: "He taped together the pieces of the broken plate." },
+    { word: "bronze", def: "A yellowish-brown alloy of copper with tin.", sentence: "The winner of the third-place race received a bronze medal." },
+    { word: "brown", def: "Of a color produced by mixing red, yellow, and blue.", sentence: "The cute puppy had soft brown fur." },
+    { word: "bubble", def: "A thin sphere of liquid enclosing air or gas.", sentence: "The children blew giant soap bubbles in the yard." },
+    { word: "bucket", def: "A cylindrical vessel with a handle, used for carrying liquids.", sentence: "He filled the red plastic bucket with soapy water." },
+    { word: "buckle", def: "A device used for fastening two ends of a belt or strap.", sentence: "He snapped the seatbelt buckle into place." },
+    { word: "budget", def: "An estimate of income and expenditure for a set period.", sentence: "They planned a tight monthly grocery budget." },
+    { word: "buffalo", def: "A large, heavily built wild ox.", sentence: "A herd of wild buffalo grazed across the plains." },
+    { word: "builder", def: "A person who constructs or repairs buildings.", sentence: "The home builder laid out the foundation for the house." },
+    { word: "bundle", def: "A collection of things tied together or wrapped up.", sentence: "She carried a heavy bundle of firewood indoors." },
+    { word: "burden", def: "A load, typically a heavy one.", sentence: "Carrying the heavy backpack felt like a burden." },
+    { word: "bureau", def: "An office or department for transacting business, or a chest of drawers.", sentence: "He placed his folded sweaters inside the wooden bureau." },
+    { word: "burner", def: "The part of a stove or furnace that produces flame or heat.", sentence: "She turned on the front stove burner to boil water." },
+    { word: "bushel", def: "A unit of capacity equal to eight gallons.", sentence: "They harvested a whole bushel of crisp apples." },
+    { word: "business", def: "A person's regular occupation, profession, or trade.", sentence: "She opened a small local bakery business." },
+    { word: "butterfly", def: "An insect with large, often colorful wings.", sentence: "A bright orange butterfly landed on the flower." },
+    { word: "calendar", def: "A chart showing the days, weeks, and months of a year.", sentence: "She circled her birthday on the calendar." }
+  ];
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function byId(id) { return document.getElementById(id); }
+
+  // ---------------------------------------------------------------
+  // Mode switching
+  // ---------------------------------------------------------------
+  var currentMode = "flashcards";
+  var cleanupFns = {};
+
+  function switchMode(mode) {
+    if (cleanupFns[currentMode]) cleanupFns[currentMode]();
+    currentMode = mode;
+
+    var sections = document.querySelectorAll(".mode-section");
+    for (var i = 0; i < sections.length; i++) sections[i].classList.remove("active");
+    byId(mode + "-section").classList.add("active");
+
+    var btns = document.querySelectorAll(".mode-btn");
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].classList.toggle("active", btns[j].getAttribute("data-mode") === mode);
+    }
+
+    if (mode === "flashcards") initFlashcards();
+    if (mode === "matching") initMatching();
+    if (mode === "drop") initDrop();
+    if (mode === "blank") initBlank();
+    if (mode === "search") initSearch();
+  }
+
+  byId("modeNav").addEventListener("click", function (e) {
+    var btn = e.target.closest(".mode-btn");
+    if (!btn) return;
+    switchMode(btn.getAttribute("data-mode"));
+  });
+
+  // =================================================================
+  // 1. Flashcards
+  // =================================================================
+  var flashIndex = 0;
+
+  function initFlashcards() {
+    flashIndex = 0;
+    renderFlashcard();
+  }
+
+  function renderFlashcard() {
+    var item = WORDS[flashIndex];
+    byId("flipCard").classList.remove("flipped");
+    byId("flashWord").textContent = item.word.toUpperCase();
+    byId("flashDef").textContent = item.def;
+    byId("flashSentence").textContent = item.sentence;
+    byId("flashProgress").textContent = "Card " + (flashIndex + 1) + " of " + WORDS.length;
+  }
+
+  byId("flashNext").addEventListener("click", function () {
+    flashIndex = (flashIndex + 1) % WORDS.length;
+    renderFlashcard();
+  });
+
+  byId("flashPrev").addEventListener("click", function () {
+    flashIndex = (flashIndex - 1 + WORDS.length) % WORDS.length;
+    renderFlashcard();
+  });
+
+  // A tap flips the card; a horizontal drag past the threshold changes
+  // cards instead (swipe left = next, swipe right = previous), so both
+  // gestures live on the same pointer stream without fighting each other.
+  var SWIPE_THRESHOLD = 40;
+  var flashSwipe = { active: false, startX: 0, startY: 0 };
+
+  byId("flipCardInner").addEventListener("pointerdown", function (e) {
+    flashSwipe.active = true;
+    flashSwipe.startX = e.clientX;
+    flashSwipe.startY = e.clientY;
+  });
+
+  byId("flipCardInner").addEventListener("pointerup", function (e) {
+    if (!flashSwipe.active) return;
+    flashSwipe.active = false;
+    var dx = e.clientX - flashSwipe.startX;
+    var dy = e.clientY - flashSwipe.startY;
+
+    if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) {
+        flashIndex = (flashIndex + 1) % WORDS.length;
+      } else {
+        flashIndex = (flashIndex - 1 + WORDS.length) % WORDS.length;
+      }
+      renderFlashcard();
+    } else {
+      byId("flipCard").classList.toggle("flipped");
+    }
+  });
+
+  byId("flipCardInner").addEventListener("pointerleave", function () {
+    flashSwipe.active = false;
+  });
+
+  // =================================================================
+  // 2. Matching
+  // =================================================================
+  var matchState = null;
+
+  // Persistent draw pile so rounds march through the whole word list
+  // instead of resampling the same handful over and over. Refills with a
+  // fresh shuffle once it runs low, so every word turns up eventually.
+  var matchDrawPile = [];
+
+  function nextMatchWords(n) {
+    if (matchDrawPile.length < n) {
+      matchDrawPile = matchDrawPile.concat(shuffle(WORDS));
+    }
+    return matchDrawPile.splice(0, n);
+  }
+
+  function initMatching() {
+    var roundWords = nextMatchWords(6);
+    matchState = {
+      words: shuffle(roundWords),
+      defs: shuffle(roundWords),
+      selectedWordEl: null,
+      selectedWordItem: null,
+      matchedCount: 0,
+      total: roundWords.length,
+      score: 0,
+      locked: false
+    };
+    byId("matchWinBanner").classList.remove("show");
+    renderMatching();
+  }
+
+  function renderMatching() {
+    var grid = byId("matchGrid");
+    grid.innerHTML = "";
+
+    matchState.words.forEach(function (item) {
+      var b = document.createElement("button");
+      b.className = "match-btn match-word";
+      b.textContent = item.word;
+      b.dataset.word = item.word;
+      b.addEventListener("click", function () { onWordClick(item, b); });
+      grid.appendChild(b);
+    });
+
+    matchState.defs.forEach(function (item) {
+      var b = document.createElement("button");
+      b.className = "match-btn match-def";
+      b.textContent = item.def;
+      b.dataset.word = item.word;
+      b.addEventListener("click", function () { onDefClick(item, b); });
+      grid.appendChild(b);
+    });
+
+    updateMatchScoreBar();
+  }
+
+  function updateMatchScoreBar() {
+    byId("matchScoreBar").textContent =
+      "Matches: " + matchState.matchedCount + " / " + matchState.total +
+      "  |  Score: " + matchState.score;
+  }
+
+  function onWordClick(item, el) {
+    if (matchState.locked || el.classList.contains("matched")) return;
+    var prev = matchState.selectedWordEl;
+    if (prev) prev.classList.remove("selected");
+    matchState.selectedWordEl = el;
+    matchState.selectedWordItem = item;
+    el.classList.add("selected");
+  }
+
+  function onDefClick(item, el) {
+    if (matchState.locked || el.classList.contains("matched")) return;
+    if (!matchState.selectedWordItem) return;
+
+    var wordEl = matchState.selectedWordEl;
+    var wordItem = matchState.selectedWordItem;
+
+    if (wordItem.word === item.word) {
+      wordEl.classList.remove("selected");
+      wordEl.classList.add("matched");
+      el.classList.add("matched");
+      wordEl.disabled = true;
+      el.disabled = true;
+      matchState.matchedCount++;
+      matchState.score += 10;
+      matchState.selectedWordEl = null;
+      matchState.selectedWordItem = null;
+      updateMatchScoreBar();
+      if (matchState.matchedCount === matchState.total) {
+        byId("matchWinBanner").classList.add("show");
+        spawnCelebrationStars();
+      }
+    } else {
+      matchState.locked = true;
+      wordEl.classList.add("error");
+      el.classList.add("error");
+      matchState.score = Math.max(0, matchState.score - 2);
+      updateMatchScoreBar();
+      setTimeout(function () {
+        wordEl.classList.remove("error", "selected");
+        el.classList.remove("error");
+        matchState.selectedWordEl = null;
+        matchState.selectedWordItem = null;
+        matchState.locked = false;
+      }, 500);
+    }
+  }
+
+  byId("matchReset").addEventListener("click", initMatching);
+
+  // Shape/glow color pairs, all drawn from the orange-yellow half of the
+  // palette (bright yellow and vivid orange, plus lighter/darker tints of
+  // each) so every star reads as "on brand" while still varying a bit.
+  var STAR_COLOR_PAIRS = [
+    { shape: "#FFEA00", glow: "#FFB300" }, // bright yellow star, amber glow
+    { shape: "#FF6200", glow: "#FFCF33" }, // vivid orange star, lighter yellow glow
+    { shape: "#FFD400", glow: "#FF6200" }, // deeper yellow star, orange glow
+    { shape: "#FF8A3D", glow: "#FFEA00" }  // lighter orange star, bright yellow glow
+  ];
+
+  // Shared celebration used by every mode: spawns a burst of stars inside
+  // any positioned container and clears them after `duration` ms. Used for
+  // the big matching-round win and for the smaller per-success flashes in
+  // Spelling Drop, Missing Letter Detective, and Speed Word Search.
+  function spawnStars(container, opts) {
+    if (!container) return;
+    opts = opts || {};
+    var count = opts.count || 16;
+    var duration = opts.duration || 3000;
+    var minSize = opts.minSize || 16;
+    var maxSize = opts.maxSize || 36;
+
+    var old = container.querySelectorAll(".celebration-star");
+    for (var k = 0; k < old.length; k++) old[k].remove();
+
+    for (var i = 0; i < count; i++) {
+      var star = document.createElement("div");
+      star.className = "celebration-star";
+      var size = minSize + Math.random() * (maxSize - minSize);
+      star.style.width = size + "px";
+      star.style.height = size + "px";
+      star.style.left = (-10 + Math.random() * 115) + "%";
+      star.style.top = (-45 + Math.random() * 150) + "%";
+      star.style.animationDelay = (Math.random() * 0.6) + "s";
+      var colors = STAR_COLOR_PAIRS[Math.floor(Math.random() * STAR_COLOR_PAIRS.length)];
+      var glow = document.createElement("div");
+      glow.className = "glow";
+      glow.style.backgroundColor = colors.glow;
+      var shape = document.createElement("div");
+      shape.className = "shape";
+      shape.style.backgroundColor = colors.shape;
+      star.appendChild(glow);
+      star.appendChild(shape);
+      container.appendChild(star);
+    }
+
+    setTimeout(function () {
+      var stars = container.querySelectorAll(".celebration-star");
+      for (var j = 0; j < stars.length; j++) stars[j].remove();
+    }, duration);
+  }
+
+  function spawnCelebrationStars() {
+    spawnStars(byId("matchWinBanner"), { count: 16, duration: 3000, minSize: 16, maxSize: 36 });
+  }
+
+  // =================================================================
+  // 3. Spelling Drop (falling letters)
+  // =================================================================
+  var dropState = null;
+
+  // Eases kids in: word 1 falls 3x slower than normal, word 2 is 2x
+  // faster than word 1, and word 3 onward settles at the normal speed.
+  var DROP_SPEED_STAGES = [13500, 6750, 4500];
+
+  function initDrop() {
+    dropState = {
+      queue: shuffle(WORDS),
+      qIndex: 0,
+      word: "",
+      spelled: "",
+      lives: 3,
+      score: 0,
+      wordNumber: 0,
+      fallDuration: DROP_SPEED_STAGES[0],
+      timers: [],
+      active: true
+    };
+    byId("dropMessage").style.display = "none";
+    updateDropStats();
+    loadDropWord();
+  }
+
+  function cleanupDrop() {
+    if (!dropState) return;
+    dropState.active = false;
+    dropState.timers.forEach(clearTimeout);
+    dropState.timers = [];
+    byId("dropArea").innerHTML = "";
+  }
+  cleanupFns.drop = cleanupDrop;
+
+  function addDropTimer(fn, ms) {
+    var id = setTimeout(function () {
+      if (!dropState || !dropState.active) return;
+      fn();
+    }, ms);
+    dropState.timers.push(id);
+    return id;
+  }
+
+  function updateDropStats() {
+    byId("dropScore").textContent = "Score: " + dropState.score;
+    byId("dropLives").textContent = "Lives: " + dropState.lives;
+  }
+
+  function loadDropWord() {
+    if (dropState.qIndex >= dropState.queue.length) {
+      dropState.queue = shuffle(WORDS);
+      dropState.qIndex = 0;
+    }
+    dropState.word = dropState.queue[dropState.qIndex].word.toUpperCase();
+    dropState.spelled = "";
+    dropState.fallDuration = DROP_SPEED_STAGES[Math.min(dropState.wordNumber, DROP_SPEED_STAGES.length - 1)];
+    dropState.wordNumber++;
+    renderDropProgress();
+    spawnDropStep();
+  }
+
+  function renderDropProgress() {
+    var row = byId("dropProgress");
+    row.innerHTML = "";
+    for (var i = 0; i < dropState.word.length; i++) {
+      var slot = document.createElement("div");
+      slot.className = "drop-slot";
+      slot.textContent = i < dropState.spelled.length ? dropState.word[i] : "";
+      row.appendChild(slot);
+    }
+  }
+
+  function spawnDropStep() {
+    var area = byId("dropArea");
+    area.innerHTML = "";
+    var targetLetter = dropState.word[dropState.spelled.length];
+    var letters = [{ ch: targetLetter, isTarget: true }];
+
+    var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    while (letters.length < 3) {
+      var decoy = alphabet[Math.floor(Math.random() * alphabet.length)];
+      if (decoy !== targetLetter) letters.push({ ch: decoy, isTarget: false });
+    }
+    letters = shuffle(letters);
+
+    var positions = shuffle([12, 40, 68]);
+    letters.forEach(function (letterInfo, idx) {
+      var tile = document.createElement("button");
+      tile.className = "falling-letter";
+      tile.textContent = letterInfo.ch;
+      tile.style.left = positions[idx] + "%";
+      tile.style.transitionDuration = dropState.fallDuration + "ms";
+      tile.addEventListener("click", function () {
+        onDropTileClick(letterInfo, tile, targetLetter);
+      });
+      area.appendChild(tile);
+    });
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var tiles = area.querySelectorAll(".falling-letter");
+        for (var i = 0; i < tiles.length; i++) tiles[i].classList.add("falling");
+      });
+    });
+
+    addDropTimer(handleDropMiss, dropState.fallDuration);
+  }
+
+  function onDropTileClick(letterInfo, tileEl, targetLetter) {
+    if (!dropState.active) return;
+    if (letterInfo.isTarget) {
+      dropState.timers.forEach(clearTimeout);
+      dropState.timers = [];
+      byId("dropArea").innerHTML = "";
+      dropState.spelled += targetLetter;
+      dropState.score += 10;
+      updateDropStats();
+      renderDropProgress();
+      if (dropState.spelled.length === dropState.word.length) {
+        dropWordComplete();
+      } else {
+        addDropTimer(spawnDropStep, 500);
+      }
+    } else {
+      tileEl.classList.add("wrong-flash");
+      dropState.score = Math.max(0, dropState.score - 2);
+      updateDropStats();
+      setTimeout(function () { tileEl.classList.remove("wrong-flash"); }, 300);
+    }
+  }
+
+  function handleDropMiss() {
+    dropState.timers.forEach(clearTimeout);
+    dropState.timers = [];
+    byId("dropArea").innerHTML = "";
+    dropState.lives--;
+    updateDropStats();
+    if (dropState.lives <= 0) {
+      dropGameOver();
+    } else {
+      showDropMessage("Missed it! The letter was " + dropState.word[dropState.spelled.length] + ".", "danger");
+      addDropTimer(function () {
+        hideDropMessage();
+        spawnDropStep();
+      }, 1200);
+    }
+  }
+
+  function dropWordComplete() {
+    var item = WORDS.filter(function (w) { return w.word.toUpperCase() === dropState.word; })[0];
+    dropState.score += 20;
+    updateDropStats();
+    showDropMessage("Great spelling! " + dropState.word + " means: " + item.def, "success");
+    spawnStars(byId("dropMessage"), { count: 8, duration: 1500, minSize: 12, maxSize: 26 });
+    addDropTimer(function () {
+      hideDropMessage();
+      dropState.qIndex++;
+      loadDropWord();
+    }, 1800);
+  }
+
+  function dropGameOver() {
+    showDropMessage("Game over! Final score: " + dropState.score, "danger");
+  }
+
+  function showDropMessage(text, kind) {
+    var el = byId("dropMessage");
+    el.textContent = text;
+    el.className = "overlay-msg " + kind;
+    el.style.display = "block";
+  }
+  function hideDropMessage() {
+    byId("dropMessage").style.display = "none";
+  }
+
+  byId("dropRestart").addEventListener("click", initDrop);
+
+  // =================================================================
+  // 4. Missing Letter Detective
+  // =================================================================
+  var blankState = null;
+  var VOWELS = "aeiou";
+
+  function initBlank() {
+    blankState = {
+      queue: shuffle(WORDS),
+      qIndex: 0,
+      score: 0
+    };
+    byId("blankMessage").style.display = "none";
+    updateBlankScoreBar();
+    loadBlankWord();
+  }
+
+  function updateBlankScoreBar() {
+    byId("blankScoreBar").textContent = "Score: " + blankState.score;
+  }
+
+  function loadBlankWord() {
+    if (blankState.qIndex >= blankState.queue.length) {
+      blankState.queue = shuffle(WORDS);
+      blankState.qIndex = 0;
+    }
+    var item = blankState.queue[blankState.qIndex];
+    var word = item.word.toLowerCase();
+
+    var blankPositions = [];
+    for (var i = 0; i < word.length; i++) {
+      if (VOWELS.indexOf(word[i]) !== -1) blankPositions.push(i);
+    }
+    if (blankPositions.length === 0) blankPositions.push(0);
+
+    blankState.item = item;
+    blankState.word = word;
+    blankState.blankPositions = blankPositions;
+    blankState.filledIndex = 0;
+
+    var correctLetters = blankPositions.map(function (i) { return word[i]; });
+    var pool = VOWELS.split("").filter(function (v) { return correctLetters.indexOf(v) === -1; });
+    var distractors = shuffle(pool).slice(0, Math.min(2, pool.length));
+    if (distractors.length < 2) {
+      var consonants = "bcdfgjklmnpqrstvwxyz".split("");
+      distractors = distractors.concat(shuffle(consonants).slice(0, 2 - distractors.length));
+    }
+    blankState.bank = shuffle(correctLetters.concat(distractors));
+
+    byId("blankSentence").textContent = item.sentence + "  (" + item.def + ")";
+    renderBlankWord();
+    renderBlankBank();
+  }
+
+  function renderBlankWord() {
+    var row = byId("blankWordRow");
+    row.innerHTML = "";
+    for (var i = 0; i < blankState.word.length; i++) {
+      var box = document.createElement("div");
+      var isBlank = blankState.blankPositions.indexOf(i) !== -1;
+      var blankOrderIndex = blankState.blankPositions.indexOf(i);
+      var alreadyFilled = isBlank && blankOrderIndex < blankState.filledIndex;
+      if (!isBlank) {
+        box.className = "blank-box filled";
+        box.textContent = blankState.word[i].toUpperCase();
+      } else if (alreadyFilled) {
+        box.className = "blank-box filled";
+        box.textContent = blankState.word[i].toUpperCase();
+      } else {
+        box.className = "blank-box empty";
+        box.textContent = "_";
+      }
+      row.appendChild(box);
+    }
+  }
+
+  function renderBlankBank() {
+    var bank = byId("blankBank");
+    bank.innerHTML = "";
+    blankState.bank.forEach(function (letter, idx) {
+      var tile = document.createElement("button");
+      tile.className = "letter-tile";
+      tile.textContent = letter.toUpperCase();
+      tile.addEventListener("click", function () { onBlankTileClick(letter, tile, idx); });
+      bank.appendChild(tile);
+    });
+  }
+
+  function onBlankTileClick(letter, tileEl) {
+    var neededIndex = blankState.blankPositions[blankState.filledIndex];
+    var neededLetter = blankState.word[neededIndex];
+
+    if (letter === neededLetter) {
+      blankState.filledIndex++;
+      blankState.score += 10;
+      updateBlankScoreBar();
+      var pos = blankState.bank.indexOf(letter);
+      blankState.bank.splice(pos, 1);
+      renderBlankWord();
+      renderBlankBank();
+      if (blankState.filledIndex === blankState.blankPositions.length) {
+        blankWordSolved();
+      }
+    } else {
+      tileEl.classList.add("error");
+      blankState.score = Math.max(0, blankState.score - 2);
+      updateBlankScoreBar();
+      setTimeout(function () { tileEl.classList.remove("error"); }, 300);
+    }
+  }
+
+  function blankWordSolved() {
+    blankState.score += 10;
+    updateBlankScoreBar();
+    var el = byId("blankMessage");
+    el.textContent = "You solved it! " + blankState.word.toUpperCase() + " - " + blankState.item.def;
+    el.className = "overlay-msg success";
+    el.style.display = "block";
+    spawnStars(el, { count: 8, duration: 1500, minSize: 12, maxSize: 26 });
+    setTimeout(function () {
+      el.style.display = "none";
+      blankState.qIndex++;
+      loadBlankWord();
+    }, 1800);
+  }
+
+  byId("blankSkip").addEventListener("click", function () {
+    blankState.qIndex++;
+    loadBlankWord();
+  });
+
+  // =================================================================
+  // 5. Speed Word Search
+  // =================================================================
+  var searchState = null;
+  var SEARCH_SIZE = 10;
+  var SEARCH_TIME = 80; // 1:20 per word
+
+  function initSearch() {
+    var built = buildSearchGrid();
+    searchState = {
+      grid: built.grid,
+      placements: built.placements,
+      queue: shuffle(built.placements),
+      qIndex: 0,
+      score: 0,
+      timeLeft: SEARCH_TIME,
+      timerId: null,
+      selecting: false,
+      anchor: null,
+      pathCells: [],
+      current: null
+    };
+    byId("searchMessage").style.display = "none";
+    updateSearchScoreBar();
+    renderSearchGrid();
+    startSearchRound();
+  }
+
+  function cleanupSearch() {
+    if (!searchState) return;
+    if (searchState.timerId) clearInterval(searchState.timerId);
+    document.removeEventListener("pointermove", onSearchPointerMove);
+    document.removeEventListener("pointerup", onSearchPointerUp);
+  }
+  cleanupFns.search = cleanupSearch;
+
+  function updateSearchScoreBar() {
+    byId("searchScoreBar").textContent = "Score: " + searchState.score;
+  }
+
+  // Persistent draw pile so word search grids work through the whole list
+  // over time rather than resampling the same handful of words. Skips
+  // any word too long for the grid rather than dropping it for good.
+  var searchDrawPile = [];
+
+  function nextSearchWords(n, maxLen) {
+    var picked = [];
+    var guard = 0;
+    while (picked.length < n && guard < WORDS.length * 3) {
+      if (searchDrawPile.length === 0) searchDrawPile = shuffle(WORDS);
+      var w = searchDrawPile.shift();
+      if (w.word.length <= maxLen) picked.push(w);
+      guard++;
+    }
+    return picked;
+  }
+
+  function buildSearchGrid() {
+    var size = SEARCH_SIZE;
+    var grid = [];
+    for (var r = 0; r < size; r++) {
+      grid.push(new Array(size).fill(null));
+    }
+
+    var candidates = nextSearchWords(6, size);
+    var directions = [{ dr: 0, dc: 1 }, { dr: 1, dc: 0 }];
+    var placements = [];
+
+    candidates.forEach(function (item) {
+      var word = item.word.toUpperCase();
+      var placed = false;
+      for (var attempt = 0; attempt < 60 && !placed; attempt++) {
+        var dir = directions[Math.floor(Math.random() * directions.length)];
+        var maxR = dir.dr === 1 ? size - word.length : size - 1;
+        var maxC = dir.dc === 1 ? size - word.length : size - 1;
+        if (maxR < 0 || maxC < 0) continue;
+        var startR = Math.floor(Math.random() * (maxR + 1));
+        var startC = Math.floor(Math.random() * (maxC + 1));
+
+        var cells = [];
+        var ok = true;
+        for (var i = 0; i < word.length; i++) {
+          var r = startR + dir.dr * i;
+          var c = startC + dir.dc * i;
+          var existing = grid[r][c];
+          if (existing !== null && existing !== word[i]) { ok = false; break; }
+          cells.push({ r: r, c: c });
+        }
+        if (!ok) continue;
+
+        cells.forEach(function (cell, i) { grid[cell.r][cell.c] = word[i]; });
+        placements.push({ item: item, word: word, cells: cells });
+        placed = true;
+      }
+    });
+
+    var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    for (var rr = 0; rr < size; rr++) {
+      for (var cc = 0; cc < size; cc++) {
+        if (grid[rr][cc] === null) {
+          grid[rr][cc] = alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+      }
+    }
+
+    return { grid: grid, placements: placements };
+  }
+
+  function renderSearchGrid() {
+    var gridEl = byId("searchGrid");
+    gridEl.innerHTML = "";
+    gridEl.style.gridTemplateColumns = "repeat(" + SEARCH_SIZE + ", auto)";
+
+    for (var r = 0; r < SEARCH_SIZE; r++) {
+      for (var c = 0; c < SEARCH_SIZE; c++) {
+        var cell = document.createElement("div");
+        cell.className = "search-cell";
+        cell.textContent = searchState.grid[r][c];
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        gridEl.appendChild(cell);
+      }
+    }
+  }
+
+  function startSearchRound() {
+    if (searchState.qIndex >= searchState.queue.length) {
+      searchGameOver();
+      return;
+    }
+    searchState.current = searchState.queue[searchState.qIndex];
+    searchState.selecting = false;
+    searchState.pathCells = [];
+    clearSearchHighlight("selecting");
+    byId("searchDefText").textContent = searchState.current.item.def;
+    searchState.timeLeft = SEARCH_TIME;
+    updateSearchTimer();
+    if (searchState.timerId) clearInterval(searchState.timerId);
+    searchState.timerId = setInterval(function () {
+      searchState.timeLeft--;
+      updateSearchTimer();
+      if (searchState.timeLeft <= 0) {
+        clearInterval(searchState.timerId);
+        searchTimeUp();
+      }
+    }, 1000);
+  }
+
+  function updateSearchTimer() {
+    var m = Math.floor(searchState.timeLeft / 60);
+    var s = searchState.timeLeft % 60;
+    byId("searchTimer").textContent = "Time left: " + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function searchTimeUp() {
+    // Cancel any drag in progress so a pointerup that lands after this
+    // point can't resolve against next round's (different) word.
+    searchState.selecting = false;
+    searchState.pathCells = [];
+    clearSearchHighlight("selecting");
+
+    var el = byId("searchMessage");
+    el.textContent = "Time's up! It was " + searchState.current.word + ".";
+    el.className = "overlay-msg danger";
+    el.style.display = "block";
+    setTimeout(function () {
+      el.style.display = "none";
+      searchState.qIndex++;
+      startSearchRound();
+    }, 1500);
+  }
+
+  function searchGameOver() {
+    byId("searchTimer").textContent = "";
+    byId("searchDefText").textContent = "All done!";
+    var el = byId("searchMessage");
+    el.textContent = "Word Search complete! Final score: " + searchState.score;
+    el.className = "overlay-msg success";
+    el.style.display = "block";
+  }
+
+  // Maps a pointer's page coordinates to a grid row/col using the grid's
+  // own geometry instead of elementFromPoint, so the small gaps between
+  // cells never create "dead zones" that swallow a touch or drag step.
+  function getCellFromCoords(x, y) {
+    var gridEl = byId("searchGrid");
+    var rect = gridEl.getBoundingClientRect();
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) return null;
+    var cellW = rect.width / SEARCH_SIZE;
+    var cellH = rect.height / SEARCH_SIZE;
+    var c = Math.floor((x - rect.left) / cellW);
+    var r = Math.floor((y - rect.top) / cellH);
+    if (r < 0 || r >= SEARCH_SIZE || c < 0 || c >= SEARCH_SIZE) return null;
+    return { r: r, c: c };
+  }
+
+  function onSearchPointerDown(e) {
+    if (!searchState || !searchState.current) return;
+    var coords = getCellFromCoords(e.clientX, e.clientY);
+    if (!coords) return;
+    searchState.selecting = true;
+    searchState.anchor = coords;
+    setSearchPath([coords]);
+  }
+
+  function onSearchPointerMove(e) {
+    if (!searchState || !searchState.selecting) return;
+    var coords = getCellFromCoords(e.clientX, e.clientY);
+    if (!coords) return;
+    var r = coords.r, c = coords.c;
+    var anchor = searchState.anchor;
+    var path = [];
+
+    if (r === anchor.r) {
+      var lo = Math.min(anchor.c, c), hi = Math.max(anchor.c, c);
+      for (var cc = lo; cc <= hi; cc++) path.push({ r: r, c: cc });
+    } else if (c === anchor.c) {
+      var lo2 = Math.min(anchor.r, r), hi2 = Math.max(anchor.r, r);
+      for (var rr = lo2; rr <= hi2; rr++) path.push({ r: rr, c: c });
+    } else {
+      return;
+    }
+    setSearchPath(path);
+  }
+
+  function onSearchPointerUp() {
+    if (!searchState || !searchState.selecting) return;
+    searchState.selecting = false;
+    var path = searchState.pathCells;
+    var target = searchState.current;
+
+    var matches = path.length === target.cells.length &&
+      path.every(function (cell) {
+        return target.cells.some(function (tc) { return tc.r === cell.r && tc.c === cell.c; });
+      });
+
+    if (matches) {
+      markCells(path, "found");
+      clearSearchHighlight("selecting");
+      searchState.score += 15;
+      updateSearchScoreBar();
+      spawnStars(byId("searchTarget"), { count: 8, duration: 1100, minSize: 12, maxSize: 26 });
+      clearInterval(searchState.timerId);
+      searchState.qIndex++;
+      setTimeout(startSearchRound, 1100);
+    } else {
+      markCells(path, "wrong");
+      setTimeout(function () {
+        clearSearchHighlight("wrong");
+        clearSearchHighlight("selecting");
+      }, 350);
+    }
+  }
+
+  function setSearchPath(path) {
+    clearSearchHighlight("selecting");
+    searchState.pathCells = path;
+    markCells(path, "selecting");
+  }
+
+  function markCells(path, cls) {
+    path.forEach(function (cell) {
+      var el = document.querySelector('.search-cell[data-r="' + cell.r + '"][data-c="' + cell.c + '"]');
+      if (el) el.classList.add(cls);
+    });
+  }
+
+  function clearSearchHighlight(cls) {
+    var els = document.querySelectorAll(".search-cell." + cls);
+    for (var i = 0; i < els.length; i++) els[i].classList.remove(cls);
+  }
+
+  byId("searchRestart").addEventListener("click", initSearch);
+
+  // Registered once (not on every grid render): the grid element itself
+  // persists across "New Grid" clicks, and stable function references
+  // mean repeat addEventListener calls on document would be no-ops anyway,
+  // but wiring it up once here keeps that assumption explicit and cheap.
+  byId("searchGrid").addEventListener("pointerdown", onSearchPointerDown);
+  document.addEventListener("pointermove", onSearchPointerMove);
+  document.addEventListener("pointerup", onSearchPointerUp);
+
+  // ---------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------
+  initFlashcards();
+})();
+</script>
+
+
+<script>
+(function () {
+  var overlay = document.getElementById('sq-open');
+  var cont = document.getElementById('sq-continue');
+  var btn = document.getElementById('sq-play');
+  var stage = overlay && overlay.querySelector('.sq-stage');
+  if (!overlay) return;
+  function goHowto(e) {
+    if (overlay.classList.contains('is-howto') || overlay.classList.contains('is-off')) return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-howto');
+  }
+  function start(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    overlay.classList.add('is-off');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (typeof gameState !== 'undefined' && gameState === 'TITLE') {
+      gameState = 'PLAYING';
+    }
+    document.dispatchEvent(new CustomEvent('sq-play'));
+  }
+  if (cont) cont.addEventListener('click', goHowto);
+  if (stage) stage.addEventListener('click', goHowto);
+  if (btn) btn.addEventListener('click', start);
+  window.addEventListener('keydown', function (e) {
+    if (overlay.classList.contains('is-off')) return;
+    if (e.code === 'Enter' || e.code === 'Space') {
+      if (overlay.classList.contains('is-howto')) start(e);
+      else goHowto(e);
+    }
+  }, true);
+})();
+</script>
+
+</body>
+</html>
