@@ -16,7 +16,7 @@
       id: "samaritan",
       title: "The Good Samaritan",
       blurb: "Stop for a stranger on the road to Jericho.",
-      card: "assets/ui/card-samaritan.jpg",
+      card: "assets/opening-bg.jpg",
       heartLabel: "Good Samaritan",
       verse: "“But a certain Samaritan, as he journeyed, came where he was: and when he saw him, he had compassion on him.”",
       verseRef: "Luke 10:33",
@@ -26,7 +26,7 @@
         {
           type: "path",
           title: "The road",
-          subtitle: "Tap the glowing crumb. Follow it out of the city.",
+          subtitle: "Tap the glowing crumb. Follow it out of town.",
           start: { x: 12, y: 86 },
           crumbs: [
             { x: 22, y: 74 },
@@ -38,7 +38,7 @@
             { x: 30, y: 50 },
             { x: 62, y: 78 }
           ],
-          scene: "city"
+          scene: "samaritan"
         },
         {
           type: "match",
@@ -50,7 +50,7 @@
           type: "fork",
           title: "By the stones",
           subtitle: "A traveler cannot walk. The road waits on your word.",
-          scene: "city",
+          scene: "samaritan",
           eyebrow: "A fork in the road",
           heading: "Someone is hurt",
           body: "A traveler lies by the stones. Dust on their cloak. They cannot walk on their own.",
@@ -76,7 +76,7 @@
             { x: 18, y: 42 },
             { x: 72, y: 64 }
           ],
-          scene: "inn"
+          scene: "samaritan"
         },
         {
           type: "match",
@@ -88,7 +88,7 @@
           type: "fork",
           title: "A room for rest",
           subtitle: "The inn is open. They still need a bed.",
-          scene: "inn",
+          scene: "samaritan",
           eyebrow: "The last fork",
           heading: "The inn",
           body: "The innkeeper waits at the door. The traveler needs a bed, a meal, and a promise to return.",
@@ -104,7 +104,7 @@
       id: "richfool",
       title: "The Rich Fool",
       blurb: "A bumper harvest, and a choice about what it's for.",
-      card: "assets/ui/card-richfool.jpg",
+      card: "assets/ui/scene-richfool.jpg",
       heartLabel: "Rich Toward God",
       verse: "“So is he that layeth up treasure for himself, and is not rich toward God.”",
       verseRef: "Luke 12:21",
@@ -126,7 +126,7 @@
             { x: 30, y: 50 },
             { x: 62, y: 78 }
           ],
-          scene: "field"
+          scene: "richfool"
         },
         {
           type: "match",
@@ -138,7 +138,7 @@
           type: "fork",
           title: "The full barns",
           subtitle: "The barns are full. The ground still gives more.",
-          scene: "field",
+          scene: "richfool",
           eyebrow: "A rich harvest",
           heading: "What now?",
           body: "The crop came in heavy this year - more than the barns can hold. The extra grain waits in the field for a decision.",
@@ -164,7 +164,7 @@
             { x: 18, y: 42 },
             { x: 72, y: 64 }
           ],
-          scene: "barn"
+          scene: "richfool"
         },
         {
           type: "match",
@@ -176,7 +176,7 @@
           type: "fork",
           title: "An empty stall",
           subtitle: "A neighbor's table is bare tonight.",
-          scene: "barn",
+          scene: "richfool",
           eyebrow: "One more chance",
           heading: "A bare table",
           body: "A family in town has nothing set aside for winter. The wagon behind you is still half full.",
@@ -192,7 +192,7 @@
       id: "prodigal",
       title: "The Prodigal Son",
       blurb: "A son comes to his senses, far from home.",
-      card: "assets/ui/card-prodigal.jpg",
+      card: "assets/ui/pigs-scene.jpg",
       heartLabel: "Welcomed Home",
       verse: "“But when he was yet a great way off, his father saw him, and had compassion, and ran, and fell on his neck, and kissed him.”",
       verseRef: "Luke 15:20",
@@ -214,7 +214,7 @@
             { x: 30, y: 50 },
             { x: 62, y: 78 }
           ],
-          scene: "city"
+          scene: "prodigal"
         },
         {
           type: "match",
@@ -226,7 +226,7 @@
           type: "fork",
           title: "Feeding the pigs",
           subtitle: "The money is gone. The famine is real.",
-          scene: "pigs",
+          scene: "prodigal",
           eyebrow: "Far from home",
           heading: "Nothing left",
           body: "The inheritance is spent. The fields are dry. Even the pig's food starts to look good.",
@@ -252,7 +252,7 @@
             { x: 18, y: 42 },
             { x: 72, y: 64 }
           ],
-          scene: "field"
+          scene: "prodigal"
         },
         {
           type: "match",
@@ -264,7 +264,7 @@
           type: "fork",
           title: "Running to meet him",
           subtitle: "Someone is running down the road.",
-          scene: "field",
+          scene: "prodigal",
           eyebrow: "The father runs",
           heading: "Welcomed home",
           body: "The father is running toward you, arms open, before you've said a word.",
@@ -302,7 +302,7 @@
             { x: 30, y: 50 },
             { x: 62, y: 78 }
           ],
-          scene: "city"
+          scene: "virgins"
         },
         {
           type: "match",
@@ -314,7 +314,7 @@
           type: "fork",
           title: "Keeping watch",
           subtitle: "The bridegroom is delayed. The night is getting long.",
-          scene: "lantern",
+          scene: "virgins",
           eyebrow: "The wait grows long",
           heading: "The oil is low",
           body: "It's taking longer than anyone thought. Some lamps nearby are already flickering.",
@@ -340,7 +340,7 @@
             { x: 18, y: 42 },
             { x: 72, y: 64 }
           ],
-          scene: "inn"
+          scene: "virgins"
         },
         {
           type: "match",
@@ -352,7 +352,7 @@
           type: "fork",
           title: "The door is closing",
           subtitle: "Someone nearby has run out of oil.",
-          scene: "inn",
+          scene: "virgins",
           eyebrow: "One lamp going dark",
           heading: "Can I have some oil?",
           body: "A voice calls out beside you - their lamp just went dark, and the door is about to shut.",
@@ -416,82 +416,19 @@
   // Flat vector backdrops for each stage's scene, in the same simple
   // sky+ground+silhouette style throughout. "city" and "inn" carry the
   // Good Samaritan road; "field" and "barn" carry the harvest story.
+  // Each story now has exactly one photographic backdrop, used behind every
+  // one of its path/fork stages - a single consistent "place" for the whole
+  // story instead of a different flat drawing per stage. .trail-scene
+  // img.backdrop (in style.css) positions whichever one of these renders.
+  const STORY_SCENES = {
+    samaritan: "assets/opening-bg.jpg",
+    richfool: "assets/ui/scene-richfool.jpg",
+    prodigal: "assets/ui/pigs-scene.jpg",
+    virgins: "assets/ui/lantern-scene.jpg"
+  };
   function sceneSvg(kind) {
-    if (kind === "pigs") {
-      // Photographic scenes - reserved for a story's most vivid single
-      // moment rather than every backdrop, so it reads as a real change of
-      // place. .trail-scene img.backdrop mirrors the svg.backdrop rule below.
-      return `<img class="backdrop" src="assets/ui/pigs-scene.jpg" alt="">`;
-    }
-    if (kind === "lantern") {
-      return `<img class="backdrop" src="assets/ui/lantern-scene.jpg" alt="">`;
-    }
-    if (kind === "inn") {
-      return `<svg class="backdrop" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="500" fill="#7EB8D4"/>
-        <rect y="300" width="400" height="200" fill="#C4783A"/>
-        <path d="M0 330 C90 300 160 360 250 320 C320 290 360 330 400 310 L400 500 L0 500 Z" fill="#8B4E1F"/>
-        <path d="M40 500 C120 360 200 340 280 300 C330 276 360 250 400 230" fill="none" stroke="#F4B942" stroke-width="10" stroke-linecap="round" stroke-dasharray="6 16" opacity="0.9"/>
-        <g transform="translate(250 70)">
-          <rect x="18" y="70" width="110" height="90" fill="#FFF1DC" stroke="#3B2A1A" stroke-width="4"/>
-          <path d="M10 74 L73 18 L136 74 Z" fill="#D64545" stroke="#3B2A1A" stroke-width="4" stroke-linejoin="round"/>
-          <rect x="58" y="108" width="30" height="48" fill="#8B4E1F"/>
-          <rect x="32" y="92" width="22" height="22" fill="#7EB8D4" stroke="#3B2A1A" stroke-width="3"/>
-          <rect x="92" y="92" width="22" height="22" fill="#7EB8D4" stroke="#3B2A1A" stroke-width="3"/>
-        </g>
-        <ellipse cx="310" cy="88" rx="28" ry="28" fill="#FFF6EB" opacity="0.8"/>
-      </svg>`;
-    }
-    if (kind === "field") {
-      return `<svg class="backdrop" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="500" fill="#7EB8D4"/>
-        <rect y="300" width="400" height="200" fill="#E8A838"/>
-        <path d="M0 320 C120 280 180 350 270 310 C330 284 370 320 400 300 L400 500 L0 500 Z" fill="#C4783A"/>
-        <path d="M20 500 C110 380 190 350 270 320 C330 298 360 270 400 250" fill="none" stroke="#FFF1DC" stroke-width="10" stroke-linecap="round" stroke-dasharray="6 16" opacity="0.9"/>
-        <g transform="translate(28 330)" stroke="#8B4E1F" stroke-width="3" fill="#F4B942">
-          <path d="M8 90 L2 40 L14 40 Z"/>
-          <path d="M24 90 L18 34 L32 34 Z"/>
-          <path d="M42 90 L36 40 L50 40 Z"/>
-          <rect x="0" y="88" width="52" height="10" fill="#C4783A" stroke="none"/>
-        </g>
-        <g transform="translate(94 344)" stroke="#8B4E1F" stroke-width="3" fill="#FFE4B5">
-          <path d="M8 76 L2 32 L14 32 Z"/>
-          <path d="M24 76 L18 26 L32 26 Z"/>
-          <path d="M42 76 L36 32 L50 32 Z"/>
-          <rect x="0" y="74" width="52" height="8" fill="#C4783A" stroke="none"/>
-        </g>
-        <ellipse cx="320" cy="90" rx="32" ry="32" fill="#FFF6EB" opacity="0.85"/>
-      </svg>`;
-    }
-    if (kind === "barn") {
-      return `<svg class="backdrop" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="400" height="500" fill="#7EB8D4"/>
-        <rect y="300" width="400" height="200" fill="#E8A838"/>
-        <path d="M0 330 C100 300 170 360 260 320 C320 296 360 330 400 312 L400 500 L0 500 Z" fill="#C4783A"/>
-        <path d="M30 500 C110 370 190 350 270 314 C330 288 360 260 400 240" fill="none" stroke="#FFF1DC" stroke-width="10" stroke-linecap="round" stroke-dasharray="6 16" opacity="0.9"/>
-        <g transform="translate(230 120)">
-          <rect x="0" y="60" width="130" height="100" fill="#D64545" stroke="#3B2A1A" stroke-width="4"/>
-          <path d="M-8 64 L65 8 L138 64 Z" fill="#8B4E1F" stroke="#3B2A1A" stroke-width="4" stroke-linejoin="round"/>
-          <rect x="56" y="100" width="18" height="60" fill="#3B2A1A" opacity="0.7"/>
-          <path d="M65 8 L65 160" stroke="#FFE4B5" stroke-width="3"/>
-        </g>
-        <image href="assets/ui/silo.png" x="8" y="130" width="112" height="124" preserveAspectRatio="xMidYMax meet"/>
-        <ellipse cx="330" cy="86" rx="30" ry="30" fill="#FFF6EB" opacity="0.85"/>
-      </svg>`;
-    }
-    return `<svg class="backdrop" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="400" height="500" fill="#7EB8D4"/>
-      <rect y="300" width="400" height="200" fill="#C4783A"/>
-      <path d="M0 340 C110 290 170 370 270 330 C340 300 370 340 400 328 L400 500 L0 500 Z" fill="#8B4E1F"/>
-      <path d="M20 500 C110 380 190 350 270 320 C330 298 360 270 400 250" fill="none" stroke="#F4B942" stroke-width="10" stroke-linecap="round" stroke-dasharray="6 16" opacity="0.9"/>
-      <g transform="translate(20 150)">
-        <rect x="10" y="70" width="70" height="80" fill="#FFF1DC" stroke="#3B2A1A" stroke-width="4"/>
-        <rect x="50" y="40" width="48" height="110" fill="#E8A838" stroke="#3B2A1A" stroke-width="4"/>
-        <rect x="22" y="88" width="18" height="18" fill="#7EB8D4" stroke="#3B2A1A" stroke-width="3"/>
-        <rect x="64" y="70" width="18" height="18" fill="#7EB8D4" stroke="#3B2A1A" stroke-width="3"/>
-      </g>
-      <ellipse cx="320" cy="90" rx="32" ry="32" fill="#FFF6EB" opacity="0.85"/>
-    </svg>`;
+    const src = STORY_SCENES[kind] || STORY_SCENES.samaritan;
+    return `<img class="backdrop scene-${kind}" src="${src}" alt="">`;
   }
 
   function showToast(message) {
@@ -830,8 +767,8 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "level-btn";
-      btn.innerHTML = (story.card ? '<img class="level-btn-bg level-btn-bg--' + story.id + '" src="' + story.card + '" alt="">' : "") +
-        '<span class="level-btn-text"><strong>' + story.title + "</strong><span>" + story.blurb + "</span></span>";
+      btn.innerHTML = '<span class="level-btn-heading"><strong>' + story.title + "</strong><span>" + story.blurb + "</span></span>" +
+        (story.card ? '<img class="level-btn-bg level-btn-bg--' + story.id + '" src="' + story.card + '" alt="">' : "");
       btn.addEventListener("click", function () {
         const overlay = document.getElementById("sq-open");
         overlay.classList.add("is-off");

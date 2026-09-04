@@ -212,9 +212,9 @@ a.sq-studio {
   gap: 12px;
 }
 .level-btn {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  aspect-ratio: 16 / 9;
   box-sizing: border-box;
   border-style: solid;
   border-width: 14px;
@@ -228,41 +228,33 @@ a.sq-studio {
   min-width: 44px;
   min-height: 56px;
 }
-.level-btn-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 65%;
+.level-btn-heading {
   display: block;
-}
-.level-btn-bg--richfool { object-position: center 80%; }
-.level-btn-bg--prodigal { object-position: center 55%; }
-.level-btn-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 10px 12px;
+  padding: 10px 12px 8px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, rgba(59, 42, 26, 0) 40%, rgba(59, 42, 26, 0.72) 100%);
 }
 .level-btn strong {
   display: block;
   font-family: "Fredoka", "Trebuchet MS", sans-serif;
   font-size: 18px;
-  color: var(--cream);
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  color: var(--ink);
 }
-.level-btn span span {
+.level-btn-heading span {
   display: block;
   font-size: 12px;
-  color: var(--paper);
+  color: var(--ink-soft);
   margin-top: 2px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
+.level-btn-bg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center 65%;
+}
+.level-btn-bg--richfool { object-position: center 78%; }
+.level-btn-bg--prodigal { object-position: center 60%; }
+.level-btn-bg--virgins { object-position: center 70%; }
 .level-btn:active { transform: translateY(2px); }
 #sq-open .sq-howto-card {
   background: var(--paper);
@@ -516,6 +508,9 @@ a.sq-studio {
   object-position: center 62%;
   display: block;
 }
+.trail-scene img.backdrop.scene-richfool { object-position: center 75%; }
+.trail-scene img.backdrop.scene-prodigal { object-position: center 60%; }
+.trail-scene img.backdrop.scene-virgins { object-position: center 68%; }
 .crumb {
   position: absolute;
   width: 44px;
