@@ -275,6 +275,94 @@
           ]
         }
       ]
+    },
+    {
+      id: "virgins",
+      title: "The Ten Virgins",
+      blurb: "Ten lamps wait for the bridegroom - only some are ready.",
+      card: "assets/ui/lantern-scene.jpg",
+      heartLabel: "Watching and Ready",
+      verse: "“Watch therefore, for ye know neither the day nor the hour wherein the Son of man cometh.”",
+      verseRef: "Matthew 25:13",
+      closeTitle: "The heart is full",
+      closeBody: "Glow was never about the waiting itself. It was the trail of a ready choice. You kept oil in the lamp. You stayed watching. You were ready when the call came.",
+      stages: [
+        {
+          type: "path",
+          title: "Going to meet him",
+          subtitle: "Tap the glowing crumb. Follow the road to the wedding.",
+          start: { x: 12, y: 86 },
+          crumbs: [
+            { x: 22, y: 74 },
+            { x: 40, y: 66 },
+            { x: 58, y: 54 },
+            { x: 76, y: 44 }
+          ],
+          decoys: [
+            { x: 30, y: 50 },
+            { x: 62, y: 78 }
+          ],
+          scene: "city"
+        },
+        {
+          type: "match",
+          title: "Filling the lamps",
+          subtitle: "Watch the oil marks. Tap them back in order.",
+          length: 3
+        },
+        {
+          type: "fork",
+          title: "Keeping watch",
+          subtitle: "The bridegroom is delayed. The night is getting long.",
+          scene: "lantern",
+          eyebrow: "The wait grows long",
+          heading: "The oil is low",
+          body: "It's taking longer than anyone thought. Some lamps nearby are already flickering.",
+          choices: [
+            { word: "Refill now", flavor: "Top off the lamp before it runs dry. Better ready too early than too late.", glow: "You didn't wait for the warning sign. The lamp glows steady." },
+            { word: "Trim the wick", flavor: "Keep it burning clean and bright while there's still time.", glow: "Small, steady care. The lamp glows steady." },
+            { word: "It'll probably be fine", flavor: "The oil will probably last. No need to worry yet.", redirect: "Probably isn't the same as ready. The lamp is still low." }
+          ]
+        },
+        {
+          type: "path",
+          title: "The midnight cry",
+          subtitle: "The crumbs glow toward the doors. Stay with the glow.",
+          start: { x: 16, y: 80 },
+          crumbs: [
+            { x: 28, y: 68 },
+            { x: 44, y: 60 },
+            { x: 52, y: 46 },
+            { x: 68, y: 38 },
+            { x: 82, y: 28 }
+          ],
+          decoys: [
+            { x: 18, y: 42 },
+            { x: 72, y: 64 }
+          ],
+          scene: "inn"
+        },
+        {
+          type: "match",
+          title: "The doorpost mark",
+          subtitle: "Match the doorpost's crumb mark before the doors close.",
+          length: 4
+        },
+        {
+          type: "fork",
+          title: "The door is closing",
+          subtitle: "Someone nearby has run out of oil.",
+          scene: "inn",
+          eyebrow: "One lamp going dark",
+          heading: "Can I have some oil?",
+          body: "A voice calls out beside you - their lamp just went dark, and the door is about to shut.",
+          choices: [
+            { word: "Point them onward", flavor: "Send them to the sellers now. There's still barely time, if they hurry.", glow: "Kind and honest both. Your lamp stays lit, and so can theirs." },
+            { word: "Go in when called", flavor: "Keep walking. The door is open now - don't miss your own moment waiting on someone else's lamp.", glow: "You didn't miss the door. It opens for you." },
+            { word: "Give them your oil", flavor: "Pour half your oil into their lamp. Surely there's enough for both.", redirect: "Split it and neither lamp makes it to morning. There isn't enough for two - point them onward instead." }
+          ]
+        }
+      ]
     }
   ];
 
@@ -330,11 +418,13 @@
   // Good Samaritan road; "field" and "barn" carry the harvest story.
   function sceneSvg(kind) {
     if (kind === "pigs") {
-      // The one photographic scene among these - reserved for the Prodigal
-      // Son's lowest point, so it reads as a real change of place rather
-      // than another flat backdrop. .trail-scene img.backdrop mirrors the
-      // svg.backdrop positioning rule below.
+      // Photographic scenes - reserved for a story's most vivid single
+      // moment rather than every backdrop, so it reads as a real change of
+      // place. .trail-scene img.backdrop mirrors the svg.backdrop rule below.
       return `<img class="backdrop" src="assets/ui/pigs-scene.jpg" alt="">`;
+    }
+    if (kind === "lantern") {
+      return `<img class="backdrop" src="assets/ui/lantern-scene.jpg" alt="">`;
     }
     if (kind === "inn") {
       return `<svg class="backdrop" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
