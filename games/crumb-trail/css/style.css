@@ -74,17 +74,68 @@ a.sq-studio {
   max-height: 100dvh;
 }
 #sq-open .sq-art {
+  position: relative;
   display: block;
-  width: 100%;
+  /* Fit within both the available width and 100dvh, whichever binds first,
+     without ever cropping - the art's own aspect ratio (2:3, matching the
+     source photo) is preserved either way so the title and crumb overlays
+     (positioned as percentages of this box) always line up with the road
+     baked into the image underneath them. */
+  width: min(100%, 66.67dvh);
+  aspect-ratio: 2 / 3;
+  margin: 0 auto;
   overflow: hidden;
   border-radius: 8px;
+  background: var(--cookie-dark);
 }
-#sq-open .sq-art svg {
-  display: block;
+#sq-open .sq-art-bg {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  max-height: 100dvh;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
+#sq-open .sq-art-title {
+  position: absolute;
+  top: 7%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+#sq-open .sq-art-title h2 {
+  margin: 0;
+  font-family: "Fredoka", Georgia, serif;
+  font-size: clamp(30px, 8vw, 44px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+  text-shadow: 0 2px 0 var(--ink), 0 4px 14px rgba(59, 42, 26, 0.55);
+}
+#sq-open .sq-art-title p {
+  margin: 4px 0 0;
+  font-family: "Fredoka", Georgia, serif;
+  font-size: clamp(13px, 3.2vw, 17px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cream);
+  text-shadow: 0 2px 8px rgba(59, 42, 26, 0.6);
+}
+#sq-open .sq-art-crumb {
+  position: absolute;
+  width: 6%;
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 2px 3px rgba(59, 42, 26, 0.45));
+}
+#sq-open .sq-art-crumb--1 { width: 4.6%; transform: translate(-50%, -50%) rotate(-6deg); }
+#sq-open .sq-art-crumb--2 { width: 5.4%; transform: translate(-50%, -50%) rotate(9deg); }
+#sq-open .sq-art-crumb--3 { width: 6.2%; transform: translate(-50%, -50%) rotate(-11deg); }
+#sq-open .sq-art-crumb--4 { width: 7.1%; transform: translate(-50%, -50%) rotate(7deg); }
+#sq-open .sq-art-crumb--5 { width: 8%; transform: translate(-50%, -50%) rotate(-8deg); }
+#sq-open .sq-art-crumb--6 { width: 9%; transform: translate(-50%, -50%) rotate(5deg); }
 #sq-open .sq-continue,
 #sq-open .sq-play {
   background: #fff6eb;
