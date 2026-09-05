@@ -34,8 +34,8 @@
             { x: 46, y: 88 }
           ],
           decoys: [
-            { x: 70, y: 55 },
-            { x: 20, y: 60 }
+            { x: 65, y: 85 },
+            { x: 20, y: 82 }
           ],
           scene: "samaritan"
         },
@@ -71,8 +71,8 @@
             { x: 50, y: 96 }
           ],
           decoys: [
-            { x: 68, y: 60 },
-            { x: 18, y: 65 }
+            { x: 68, y: 90 },
+            { x: 20, y: 88 }
           ],
           scene: "samaritan"
         },
@@ -120,8 +120,8 @@
             { x: 50, y: 91 }
           ],
           decoys: [
-            { x: 75, y: 60 },
-            { x: 15, y: 65 }
+            { x: 70, y: 85 },
+            { x: 18, y: 83 }
           ],
           scene: "richfool"
         },
@@ -157,8 +157,8 @@
             { x: 60, y: 98 }
           ],
           decoys: [
-            { x: 72, y: 65 },
-            { x: 18, y: 70 }
+            { x: 72, y: 90 },
+            { x: 20, y: 92 }
           ],
           scene: "richfool"
         },
@@ -206,8 +206,8 @@
             { x: 68, y: 42 }
           ],
           decoys: [
-            { x: 20, y: 20 },
-            { x: 85, y: 18 }
+            { x: 25, y: 48 },
+            { x: 82, y: 42 }
           ],
           scene: "prodigal"
         },
@@ -243,8 +243,8 @@
             { x: 79, y: 30 }
           ],
           decoys: [
-            { x: 22, y: 22 },
-            { x: 88, y: 20 }
+            { x: 30, y: 38 },
+            { x: 85, y: 33 }
           ],
           scene: "prodigal"
         },
@@ -292,8 +292,8 @@
             { x: 62, y: 52 }
           ],
           decoys: [
-            { x: 15, y: 25 },
-            { x: 90, y: 25 }
+            { x: 20, y: 55 },
+            { x: 85, y: 45 }
           ],
           scene: "virgins"
         },
@@ -329,8 +329,8 @@
             { x: 80, y: 42 }
           ],
           decoys: [
-            { x: 18, y: 28 },
-            { x: 88, y: 28 }
+            { x: 22, y: 60 },
+            { x: 88, y: 50 }
           ],
           scene: "virgins"
         },
@@ -503,7 +503,7 @@
         btn.classList.remove("is-shake");
         void btn.offsetWidth;
         btn.classList.add("is-shake");
-        showToast("That crumb turns away. Come back to the glow.");
+        showToast("That one's gone moldy - not part of the path. Tap the crumb that's glowing.");
       });
       scene.appendChild(btn);
     });
@@ -522,7 +522,7 @@
           btn.classList.remove("is-shake");
           void btn.offsetWidth;
           btn.classList.add("is-shake");
-          showToast("Gentle redirect. The glow is still waiting on the true crumb.");
+          showToast("Good crumb, wrong turn - tap the one that's glowing first.");
           return;
         }
         inputLock = true;
