@@ -27,16 +27,15 @@
           type: "path",
           title: "The road",
           subtitle: "Tap the glowing crumb. Follow it out of town.",
-          start: { x: 12, y: 86 },
           crumbs: [
-            { x: 22, y: 74 },
-            { x: 40, y: 66 },
-            { x: 58, y: 54 },
-            { x: 76, y: 44 }
+            { x: 35, y: 75 },
+            { x: 39, y: 79 },
+            { x: 43, y: 84 },
+            { x: 46, y: 88 }
           ],
           decoys: [
-            { x: 30, y: 50 },
-            { x: 62, y: 78 }
+            { x: 65, y: 85 },
+            { x: 20, y: 82 }
           ],
           scene: "samaritan"
         },
@@ -64,17 +63,16 @@
           type: "path",
           title: "Carry them on",
           subtitle: "The crumbs glow toward the inn. Stay with the glow.",
-          start: { x: 16, y: 80 },
           crumbs: [
-            { x: 28, y: 68 },
-            { x: 44, y: 60 },
-            { x: 52, y: 46 },
-            { x: 68, y: 38 },
-            { x: 82, y: 28 }
+            { x: 39, y: 79 },
+            { x: 43, y: 84 },
+            { x: 46, y: 88 },
+            { x: 48, y: 92 },
+            { x: 50, y: 96 }
           ],
           decoys: [
-            { x: 18, y: 42 },
-            { x: 72, y: 64 }
+            { x: 68, y: 90 },
+            { x: 20, y: 88 }
           ],
           scene: "samaritan"
         },
@@ -115,16 +113,15 @@
           type: "path",
           title: "The harvest field",
           subtitle: "Tap the glowing crumb. Follow the grain trail home.",
-          start: { x: 12, y: 86 },
           crumbs: [
-            { x: 22, y: 74 },
-            { x: 40, y: 66 },
-            { x: 58, y: 54 },
-            { x: 76, y: 44 }
+            { x: 32, y: 80 },
+            { x: 38, y: 84 },
+            { x: 44, y: 88 },
+            { x: 50, y: 91 }
           ],
           decoys: [
-            { x: 30, y: 50 },
-            { x: 62, y: 78 }
+            { x: 70, y: 85 },
+            { x: 18, y: 83 }
           ],
           scene: "richfool"
         },
@@ -152,17 +149,16 @@
           type: "path",
           title: "Down to town",
           subtitle: "The crumbs glow toward town. Stay with the glow.",
-          start: { x: 16, y: 80 },
           crumbs: [
-            { x: 28, y: 68 },
-            { x: 44, y: 60 },
-            { x: 52, y: 46 },
-            { x: 68, y: 38 },
-            { x: 82, y: 28 }
+            { x: 38, y: 84 },
+            { x: 44, y: 88 },
+            { x: 50, y: 91 },
+            { x: 55, y: 95 },
+            { x: 60, y: 98 }
           ],
           decoys: [
-            { x: 18, y: 42 },
-            { x: 72, y: 64 }
+            { x: 72, y: 90 },
+            { x: 20, y: 92 }
           ],
           scene: "richfool"
         },
@@ -203,16 +199,15 @@
           type: "path",
           title: "Leaving home",
           subtitle: "Tap the glowing crumb. Follow the road away.",
-          start: { x: 12, y: 86 },
           crumbs: [
-            { x: 22, y: 74 },
-            { x: 40, y: 66 },
-            { x: 58, y: 54 },
-            { x: 76, y: 44 }
+            { x: 50, y: 62 },
+            { x: 56, y: 55 },
+            { x: 62, y: 48 },
+            { x: 68, y: 42 }
           ],
           decoys: [
-            { x: 30, y: 50 },
-            { x: 62, y: 78 }
+            { x: 25, y: 48 },
+            { x: 82, y: 42 }
           ],
           scene: "prodigal"
         },
@@ -240,17 +235,16 @@
           type: "path",
           title: "The road home",
           subtitle: "The crumbs glow toward home. Stay with the glow.",
-          start: { x: 16, y: 80 },
           crumbs: [
-            { x: 28, y: 68 },
-            { x: 44, y: 60 },
-            { x: 52, y: 46 },
-            { x: 68, y: 38 },
-            { x: 82, y: 28 }
+            { x: 56, y: 55 },
+            { x: 62, y: 48 },
+            { x: 68, y: 42 },
+            { x: 74, y: 36 },
+            { x: 79, y: 30 }
           ],
           decoys: [
-            { x: 18, y: 42 },
-            { x: 72, y: 64 }
+            { x: 30, y: 38 },
+            { x: 85, y: 33 }
           ],
           scene: "prodigal"
         },
@@ -291,16 +285,15 @@
           type: "path",
           title: "Going to meet him",
           subtitle: "Tap the glowing crumb. Follow the road to the wedding.",
-          start: { x: 12, y: 86 },
           crumbs: [
-            { x: 22, y: 74 },
-            { x: 40, y: 66 },
-            { x: 58, y: 54 },
-            { x: 76, y: 44 }
+            { x: 35, y: 70 },
+            { x: 44, y: 63 },
+            { x: 53, y: 57 },
+            { x: 62, y: 52 }
           ],
           decoys: [
-            { x: 30, y: 50 },
-            { x: 62, y: 78 }
+            { x: 20, y: 55 },
+            { x: 85, y: 45 }
           ],
           scene: "virgins"
         },
@@ -328,17 +321,16 @@
           type: "path",
           title: "The midnight cry",
           subtitle: "The crumbs glow toward the doors. Stay with the glow.",
-          start: { x: 16, y: 80 },
           crumbs: [
-            { x: 28, y: 68 },
-            { x: 44, y: 60 },
-            { x: 52, y: 46 },
-            { x: 68, y: 38 },
-            { x: 82, y: 28 }
+            { x: 44, y: 63 },
+            { x: 53, y: 57 },
+            { x: 62, y: 52 },
+            { x: 71, y: 47 },
+            { x: 80, y: 42 }
           ],
           decoys: [
-            { x: 18, y: 42 },
-            { x: 72, y: 64 }
+            { x: 22, y: 60 },
+            { x: 88, y: 50 }
           ],
           scene: "virgins"
         },
@@ -387,17 +379,6 @@
   let kindness = 0;
   let toastTimer = 0;
   let inputLock = false;
-
-  function loafSvg() {
-    return `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <ellipse cx="32" cy="42" rx="22" ry="14" fill="#E8A838"/>
-      <ellipse cx="32" cy="34" rx="20" ry="16" fill="#F4B942"/>
-      <ellipse cx="32" cy="28" rx="14" ry="8" fill="#FFE4B5"/>
-      <circle cx="25" cy="34" r="2.4" fill="#3B2A1A"/>
-      <circle cx="39" cy="34" r="2.4" fill="#3B2A1A"/>
-      <path d="M26 41c3 3.2 9 3.2 12 0" fill="none" stroke="#3B2A1A" stroke-width="2.2" stroke-linecap="round"/>
-    </svg>`;
-  }
 
   // Each trail mark kind now renders as one of the farmstead icons instead
   // of a hand-drawn shape - the kind keys (and the Simon-says logic that
@@ -499,13 +480,6 @@
     scene.setAttribute("aria-label", "Crumb path");
     scene.innerHTML = sceneSvg(stage.scene);
 
-    const loaf = document.createElement("div");
-    loaf.className = "loaf";
-    loaf.innerHTML = loafSvg();
-    loaf.style.left = stage.start.x + "%";
-    loaf.style.top = stage.start.y + "%";
-    scene.appendChild(loaf);
-
     let next = 0;
     const crumbs = stage.crumbs.map(function (spot, i) {
       const btn = document.createElement("button");
@@ -529,7 +503,7 @@
         btn.classList.remove("is-shake");
         void btn.offsetWidth;
         btn.classList.add("is-shake");
-        showToast("That crumb turns away. Come back to the glow.");
+        showToast("That one's gone moldy - not part of the path. Tap the crumb that's glowing.");
       });
       scene.appendChild(btn);
     });
@@ -548,12 +522,10 @@
           btn.classList.remove("is-shake");
           void btn.offsetWidth;
           btn.classList.add("is-shake");
-          showToast("Gentle redirect. The glow is still waiting on the true crumb.");
+          showToast("Good crumb, wrong turn - tap the one that's glowing first.");
           return;
         }
         inputLock = true;
-        loaf.style.left = stage.crumbs[i].x + "%";
-        loaf.style.top = stage.crumbs[i].y + "%";
         next += 1;
         lightNext();
         const done = next >= crumbs.length;
@@ -683,19 +655,6 @@
     const scene = document.createElement("div");
     scene.className = "trail-scene";
     scene.innerHTML = sceneSvg(stage.scene);
-    const loaf = document.createElement("div");
-    loaf.className = "loaf";
-    loaf.innerHTML = loafSvg();
-    loaf.style.left = "46%";
-    loaf.style.top = "62%";
-    scene.appendChild(loaf);
-    const traveler = document.createElement("div");
-    traveler.className = "loaf";
-    traveler.style.left = "68%";
-    traveler.style.top = "70%";
-    traveler.style.opacity = "0.85";
-    traveler.innerHTML = `<svg viewBox="0 0 64 40" aria-hidden="true"><ellipse cx="32" cy="28" rx="24" ry="8" fill="#5c4633" opacity="0.25"/><ellipse cx="34" cy="22" rx="18" ry="10" fill="#C4783A"/><circle cx="50" cy="16" r="7" fill="#F4B942"/><circle cx="48" cy="15" r="1.4" fill="#3B2A1A"/><circle cx="53" cy="15" r="1.4" fill="#3B2A1A"/></svg>`;
-    scene.appendChild(traveler);
     stageWrap.appendChild(scene);
 
     document.getElementById("forkEyebrow").textContent = stage.eyebrow;
